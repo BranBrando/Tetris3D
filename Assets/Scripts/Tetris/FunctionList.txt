@@ -1,0 +1,83 @@
+# 3D Tetris Game - Function List
+
+This document provides a high-level overview of key functions in the 3D Tetris game to help with development and customization.
+
+## GameManager
+- `GetGridSize()`: Returns the X, Y, Z dimensions of the game grid
+- `WorldToGridPosition(Vector3)`: Converts a world position to a grid position
+- `IsPositionValid(Vector3Int)`: Checks if a grid position is valid
+- `IncreaseSpeed()`: Increases game speed when leveling up
+- `GetCurrentFallTime()`: Returns the current time between tetromino falls
+- `PlacePiece(Tetromino)`: Places a tetromino on the grid
+- `IsGameOver()`: Checks if the game is over
+
+## GridSystem
+- `Initialize(int, int, int)`: Sets up the grid with width, height, and depth
+- `IsPositionValid(Vector3Int)`: Checks if a position is valid and empty
+- `StoreBlock(Vector3Int, Transform)`: Stores a block in the grid
+- `IsPositionOccupied(Vector3Int)`: Checks if a position contains a block
+- `CheckXZPlane(int)`: Checks if a horizontal layer is complete
+- `ClearXZPlane(int)`: Clears a horizontal layer
+- `ShiftDownAbove(int)`: Shifts all blocks above a cleared layer down
+- `CheckXYPlane(int)`: Checks if a depth layer is complete
+- `ClearXYPlane(int)`: Clears a depth layer
+- `ShiftForwardBehind(int)`: Shifts blocks behind a cleared depth layer forward
+- `CheckYZPlane(int)`: Checks if a width layer is complete
+- `ClearYZPlane(int)`: Clears a width layer
+- `ShiftRightToLeft(int)`: Shifts blocks to the right of a cleared width layer left
+
+## Tetromino
+- `IsValidPosition()`: Checks if the current position is valid
+- `MoveDown()`: Moves the tetromino down one unit
+- `Move(Vector3)`: Moves the tetromino in a given direction
+- `ShowGhostPiece(bool)`: Shows/hides a ghost piece preview at landing position
+
+## PieceSpawner
+- `CreateDefaultTetrominoPrefabs()`: Creates the 7 standard tetromino shapes
+- `CreateTetrominoPrefab(Vector3[], Color, string)`: Creates a custom tetromino
+- `SpawnRandomPiece()`: Spawns a random tetromino at the spawn position
+
+## ScoreManager
+- `AddScore(int)`: Adds points based on the number of planes cleared
+- `GetScore()`: Returns the current score
+- `GetLevel()`: Returns the current level
+- `GetLines()`: Returns the number of planes cleared
+
+## InputController
+- `HandleMovementInput()`: Processes movement key presses
+- `HandleRotationInput()`: Processes rotation key presses
+- `HandleSpeedInput()`: Processes quick fall key presses
+- `ResetInputState()`: Resets input timers and state
+- `ClearAllListeners()`: Clears event subscribers
+
+## UIManager
+- `SetGridVisibility(bool)`: Shows/hides the grid
+- `SetGridTransparency(float)`: Adjusts grid transparency
+- `RestartGame()`: Restarts the game
+- `ToggleControlsPanel()`: Shows/hides controls panel
+- `ShowGameOver()`: Displays game over UI
+
+## CameraController
+- `SetTarget(Transform, Vector3)`: Sets the camera's target and offset
+- `SetZoom(float)`: Sets the camera zoom level (0-1)
+
+## GridVisualizer
+- `CreateGridVisualization()`: Creates a visual representation of the grid
+- `RegenerateGrid()`: Recreates the grid visualization
+- `SetGridVisibility(bool)`: Shows/hides the grid
+- `SetGridTransparency(float)`: Adjusts grid transparency
+
+## LineRendererMaterialFixer
+- `FixLineMaterials()`: Fixes material issues with LineRenderer components
+- `RefreshLines()`: Refreshes line materials and settings
+
+## GridVisualizationUtility
+- `FixAllLineRenderersInScene()`: Fixes all LineRenderer materials in the scene
+- `FixLineRenderersInChildren()`: Fixes LineRenderer materials in children
+- `CreateTestLines()`: Creates test lines for debugging
+- `ClearAllTestLines()`: Removes all test lines
+
+## Events
+- `InputController.OnMovementInput`: Triggered when movement input is detected
+- `InputController.OnRotationInput`: Triggered when rotation input is detected
+- `InputController.OnSpeedInput`: Triggered when speed input is detected
