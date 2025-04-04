@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic; // For List
 
 namespace TetrisGame
 {
@@ -10,14 +11,13 @@ namespace TetrisGame
         [SerializeField] private Material lineMaterial;
         [SerializeField] private bool useCustomShader = true;
         [SerializeField] private string customShaderName = "Custom/AlwaysVisibleLine";
-
         [Header("Visibility Settings")]
         [SerializeField] private bool showBoundaryCube = true;
         [SerializeField] private float boundaryCubeTransparency = 0.1f;
         [SerializeField] private bool autoGenerateGridOnStart = true;
 
         private Vector3Int gridSize;
-        private GameObject gridContainer;
+        private GameObject gridContainer; // For lines/cube
 
         private void Start()
         {
@@ -71,6 +71,8 @@ namespace TetrisGame
 
             gridContainer = new GameObject("GridVisualization");
             gridContainer.transform.parent = transform;
+            gridContainer.transform.localPosition = Vector3.zero;
+            gridContainer.transform.localRotation = Quaternion.identity;
 
             // Create default material if none assigned
             if (lineMaterial == null)
@@ -110,6 +112,7 @@ namespace TetrisGame
 
             // Create boundary cube (optional - comment out if not needed)
             CreateBoundaryCube();
+
         }
 
         private void CreateXLines()
@@ -447,6 +450,5 @@ namespace TetrisGame
             Debug.Log("Applied material fixes manually to all LineRenderer components.");
         }
 
-        // Removed: RotateVisualizer method (Rotation now handled by GameManager coroutine)
     }
 }

@@ -262,17 +262,10 @@ namespace TetrisGame
 
                 Quaternion currentRotation = Quaternion.Slerp(startRotation, targetRotation, t);
 
-                // Apply rotation to visualizer and spawner transforms directly
+                // Apply rotation to visualizer (which parents lines) and spawner
                 if (gridVisualizer != null)
                 {
-                    // Assuming RotateVisualizer rotated the container and the main transform
-                    // We need to rotate both here as well if that's the case.
-                    // If it only rotated the container, adjust accordingly.
-                    // Let's assume it rotated the main transform for now.
-                    gridVisualizer.transform.rotation = currentRotation;
-                    // If gridVisualizer.gridContainer exists and needs separate rotation:
-                    // Transform gridContainer = gridVisualizer.transform.Find("GridVisualization");
-                    // if (gridContainer != null) gridContainer.rotation = currentRotation;
+                    gridVisualizer.transform.rotation = currentRotation; // Rotate the main visualizer transform
                 }
                 else
                 {
@@ -295,8 +288,8 @@ namespace TetrisGame
 
             // Ensure final rotation is exact for the visualizer and spawner
             Quaternion finalRotation = Quaternion.Euler(0, targetAngleY, 0);
-             if (gridVisualizer != null) gridVisualizer.transform.rotation = finalRotation;
-             if (pieceSpawner != null) pieceSpawner.transform.rotation = finalRotation; // Add back PieceSpawner final rotation set
+             if (gridVisualizer != null) gridVisualizer.transform.rotation = finalRotation; // Rotate main visualizer transform
+             if (pieceSpawner != null) pieceSpawner.transform.rotation = finalRotation;
 
             currentGridRotationY = targetAngleY; // Update the current state
             isRotating = false;

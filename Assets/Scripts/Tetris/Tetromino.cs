@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic; // Added for List<>
 // using System;
 
 namespace TetrisGame
@@ -13,14 +14,14 @@ namespace TetrisGame
         
         [Header("Ghost Piece Settings")]
         [SerializeField] private Material ghostMaterial;
-        [SerializeField] private float ghostAlpha = 0.3f;
+        [SerializeField] private float ghostAlpha = 1f; // Changed default value
         
         // Movement and state variables
         private float fallTimer = 0f;
         private bool isActive = true;
         private bool isQuickFalling = false;
         private GameObject ghostPieceObj;
-        // Removed: private Quaternion currentGridRotation = Quaternion.identity;
+        private GridVisualizer gridVisualizer; // Reference for shadow updates
 
         private void Start()
         {
@@ -38,13 +39,20 @@ namespace TetrisGame
             inputController.OnMovementInput += OnMovementHandler;
             inputController.OnRotationInput += OnRotationHandler;
             inputController.OnSpeedInput += OnSpeedHandler;
-            
+
+            // Find the GridVisualizer
+            gridVisualizer = FindFirstObjectByType<GridVisualizer>();
+            if (gridVisualizer == null)
+            {
+                Debug.LogWarning("Tetromino could not find GridVisualizer!");
+            }
+
             // Create ghost piece
-            // CreateGhostPiece();
-            // UpdateGhostPiece();
+            CreateGhostPiece(); // Uncommented
+            // UpdateGhostPiece(); // Update is called in Update() anyway
             
             // Show the ghost piece
-            // ShowGhostPiece(true);
+            ShowGhostPiece(true); // Uncommented
         }
         
         private void OnDestroy()
@@ -124,6 +132,9 @@ namespace TetrisGame
             
             // Update ghost piece position
             UpdateGhostPiece();
+
+            // Update visualizer shadows
+            UpdateVisualizerShadows();
         }
 
         private void MoveDown()
@@ -151,8 +162,12 @@ namespace TetrisGame
             {
                 transform.position -= direction;
             }
+            else
+            {
+                UpdateVisualizerShadows(); // Update shadows after successful move
+            }
         }
-        
+
         private void Rotate(Vector3 rotation)
         {
             // Store original rotation and position
@@ -174,9 +189,17 @@ namespace TetrisGame
                     transform.rotation = originalRotation;
                     transform.position = originalPosition;
                 }
+                else
+                {
+                     UpdateVisualizerShadows(); // Update shadows after successful rotation/kick
+                }
+            }
+            else
+            {
+                 UpdateVisualizerShadows(); // Update shadows after successful rotation
             }
         }
-        
+
         private bool TryWallKicks()
         {
             // Try moving one unit in each direction to see if rotation becomes valid
@@ -224,6 +247,25 @@ namespace TetrisGame
             return true;
         }
 
+        // Helper method to update the grid visualizer shadows using the ghost piece position
+        private void UpdateVisualizerShadows()
+        {
+            // Ensure ghost piece exists, is active, and visualizer is available
+            if (ghostPieceObj != null && ghostPieceObj.activeSelf)
+            {
+                List<Vector3> ghostBlockWorldPositions = new List<Vector3>();
+                foreach (Transform block in ghostPieceObj.transform) // Use ghostPieceObj's blocks
+                {
+                    // Get the world position of each active block in the ghost piece
+                    if (block.gameObject.activeSelf)
+                    {
+                        ghostBlockWorldPositions.Add(block.position);
+                    }
+                }
+            }
+        }
+
+
         // Removed: SetGridRotation method
 
         private void CreateGhostPiece()
@@ -233,26 +275,63 @@ namespace TetrisGame
             // Create a copy of the tetromino
             ghostPieceObj = Instantiate(gameObject, transform.position, transform.rotation);
             
-            // Remove Tetromino component from ghost
-            Destroy(ghostPieceObj.GetComponent<Tetromino>());
-            
             // Setup ghost material
             foreach (Transform child in ghostPieceObj.transform)
             {
                 Renderer renderer = child.GetComponent<Renderer>();
                 if (renderer != null)
                 {
-                    // Create ghost material if not provided
-                    if (ghostMaterial == null)
+                    // Determine the base material (either from Inspector or original renderer)
+                    Material baseMat = (ghostMaterial != null) ? ghostMaterial : renderer.material;
+                    
+                    // ALWAYS create a new instance for the ghost
+                    Material ghostInstanceMat = new Material(baseMat); 
+                    
+                    // Apply the alpha from the script variable
+                    Color ghostColor = ghostInstanceMat.color;
+                    ghostColor.a = ghostAlpha;
+                    ghostInstanceMat.color = ghostColor;
+
+                    // --- Force Transparency Settings (Assuming URP/Lit Shader) ---
+                    // If using a different shader, these property names might need changing.
+                    try
                     {
-                        ghostMaterial = new Material(renderer.material);
-                        Color ghostColor = ghostMaterial.color;
-                        ghostColor.a = ghostAlpha;
-                        ghostMaterial.color = ghostColor;
+                        // Set Surface Type to Transparent (1.0f for URP/Lit)
+                        if (ghostInstanceMat.HasProperty("_Surface"))
+                        {
+                            ghostInstanceMat.SetFloat("_Surface", 1.0f);
+                        }
+                        // Set Blend Mode to Alpha (0.0f for URP/Lit)
+                        if (ghostInstanceMat.HasProperty("_Blend"))
+                        {
+                             ghostInstanceMat.SetFloat("_Blend", 0.0f);
+                        }
+                        // Set standard blend modes
+                        if (ghostInstanceMat.HasProperty("_SrcBlend"))
+                        {
+                            ghostInstanceMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                        }
+                        if (ghostInstanceMat.HasProperty("_DstBlend"))
+                        {
+                             ghostInstanceMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                        }
+                        // Disable ZWrite for proper transparency sorting
+                        if (ghostInstanceMat.HasProperty("_ZWrite"))
+                        {
+                             ghostInstanceMat.SetInt("_ZWrite", 0);
+                        }
+                        // Set render queue to Transparent
+                        ghostInstanceMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
                     }
-                    
-                    renderer.material = ghostMaterial;
-                    
+                    catch (System.Exception ex)
+                    {
+                        Debug.LogWarning($"Tetromino: Could not set URP transparency properties on ghost material '{ghostInstanceMat.name}'. Shader might not be URP/Lit or compatible. Error: {ex.Message}", child.gameObject);
+                    }
+                    // --- End Transparency Settings ---
+
+                    // Assign the new instance with correct alpha and transparency settings
+                    renderer.material = ghostInstanceMat;
+
                     // Disable colliders if they exist
                     Collider collider = child.GetComponent<Collider>();
                     if (collider != null) collider.enabled = false;
@@ -261,6 +340,9 @@ namespace TetrisGame
             
             // Initially hide ghost
             ghostPieceObj.SetActive(false);
+
+            // Remove Tetromino component from ghost AFTER setup
+            Destroy(ghostPieceObj.GetComponent<Tetromino>());
         }
         
         private void UpdateGhostPiece()

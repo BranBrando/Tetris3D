@@ -2621,6 +2621,7 @@ MonoBehaviour:
   gridWidth: 3
   gridHeight: 10
   gridDepth: 3
+  rotationDuration: 0.5
 --- !u!114 &1587517585
 MonoBehaviour:
   m_ObjectHideFlags: 0
