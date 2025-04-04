@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections; // Required for Coroutines
 
 namespace TetrisGame
 {
@@ -12,6 +13,14 @@ namespace TetrisGame
 
         private GridSystem gridSystem;
         private PieceSpawner pieceSpawner;
+        private InputController inputController; // Reference to InputController
+        private GridVisualizer gridVisualizer; // Reference to GridVisualizer
+        // Removed: private Tetromino activeTetromino;
+        private float currentGridRotationY = 0f; // Current visual rotation state of the grid
+        private float targetGridRotationY = 0f; // Target rotation state
+        private bool isRotating = false; // Flag to prevent concurrent rotations
+        [SerializeField] private float rotationDuration = 0.5f; // Duration for smooth rotation
+
         private float baseFallTime = 3f;
         private float currentFallTime;
 
@@ -31,6 +40,20 @@ namespace TetrisGame
 
         private void Start()
         {
+            // Find necessary components in the scene
+            inputController = FindFirstObjectByType<InputController>();
+            gridVisualizer = FindFirstObjectByType<GridVisualizer>(); // Assumes GridVisualizer exists in the scene
+
+            // Subscribe to the grid rotation input event
+            if (inputController != null)
+            {
+                inputController.OnGridRotateInput += HandleGridRotation;
+            }
+            else
+            {
+                Debug.LogError("GameManager could not find InputController!");
+            }
+
             gridSystem = new GameObject("GridSystem").AddComponent<GridSystem>();
             gridSystem.Initialize(gridWidth, gridHeight, gridDepth);
             gridSystem.transform.position = Vector3.zero;
@@ -55,8 +78,25 @@ namespace TetrisGame
             
             // Note: CameraController and GridVisualizer should be added manually in the Unity Editor
             // or after all scripts are compiled.
-            
+
             currentFallTime = baseFallTime;
+
+            // Initial piece spawn
+            // SpawnNewPiece();
+        }
+
+        // Unsubscribe when the GameManager is destroyed
+        private void OnDestroy()
+        {
+            if (inputController != null)
+            {
+                inputController.OnGridRotateInput -= HandleGridRotation;
+            }
+            // Prevent memory leaks if this instance was the singleton
+            if (Instance == this)
+            {
+                Instance = null;
+            }
         }
 
         public Vector3Int GetGridSize()
@@ -66,11 +106,27 @@ namespace TetrisGame
 
         public Vector3Int WorldToGridPosition(Vector3 worldPosition)
         {
-            return new Vector3Int(
-                Mathf.FloorToInt(worldPosition.x),
-                Mathf.FloorToInt(worldPosition.y),
-                Mathf.FloorToInt(worldPosition.z)
-            );
+            int x, y, z;
+
+            // Calculate Y index (unaffected by Y rotation)
+            y = Mathf.FloorToInt(worldPosition.y);
+
+            // Check if grid is rotated (allow for small floating point inaccuracies)
+            if (Mathf.Abs(currentGridRotationY - 180f) < 0.1f)
+            {
+                // Rotated 180 degrees: Map world coordinates to opposite side of the grid array
+                // Assuming grid pivot is at (0,0,0) world space for index calculation
+                x = gridWidth - 1 - Mathf.FloorToInt(worldPosition.x);
+                z = gridDepth - 1 - Mathf.FloorToInt(worldPosition.z);
+            }
+            else
+            {
+                // Not rotated (or close to 0): Standard mapping
+                x = Mathf.FloorToInt(worldPosition.x);
+                z = Mathf.FloorToInt(worldPosition.z);
+            }
+
+            return new Vector3Int(x, y, z);
         }
 
         public bool IsPositionValid(Vector3Int gridPosition)
@@ -170,7 +226,85 @@ namespace TetrisGame
 
         private void SpawnNewPiece()
         {
-            pieceSpawner.SpawnRandomPiece();
+            if (pieceSpawner == null)
+            {
+                Debug.LogError("PieceSpawner is null in GameManager. Cannot spawn piece.");
+                return;
+            }
+            pieceSpawner.SpawnRandomPiece(); // Still need to call spawn
+
+        }
+
+        // Handles the grid rotation input event from InputController
+        private void HandleGridRotation()
+        {
+            if (isRotating) return; // Don't start a new rotation if one is in progress
+
+            targetGridRotationY = (currentGridRotationY + 180f) % 360f; // Calculate the next target angle
+            StartCoroutine(SmoothRotateGrid(targetGridRotationY));
+        }
+
+        // Coroutine for smooth rotation
+        private IEnumerator SmoothRotateGrid(float targetAngleY)
+        {
+            isRotating = true;
+            float timeElapsed = 0f;
+            Quaternion startRotation = Quaternion.Euler(0, currentGridRotationY, 0);
+            Quaternion targetRotation = Quaternion.Euler(0, targetAngleY, 0);
+
+            Debug.Log($"Starting smooth rotation from {currentGridRotationY} to {targetAngleY}");
+
+            while (timeElapsed < rotationDuration)
+            {
+                float t = timeElapsed / rotationDuration;
+                // Optional: Add easing (e.g., SmoothStep)
+                // t = t * t * (3f - 2f * t);
+
+                Quaternion currentRotation = Quaternion.Slerp(startRotation, targetRotation, t);
+
+                // Apply rotation to visualizer and spawner transforms directly
+                if (gridVisualizer != null)
+                {
+                    // Assuming RotateVisualizer rotated the container and the main transform
+                    // We need to rotate both here as well if that's the case.
+                    // If it only rotated the container, adjust accordingly.
+                    // Let's assume it rotated the main transform for now.
+                    gridVisualizer.transform.rotation = currentRotation;
+                    // If gridVisualizer.gridContainer exists and needs separate rotation:
+                    // Transform gridContainer = gridVisualizer.transform.Find("GridVisualization");
+                    // if (gridContainer != null) gridContainer.rotation = currentRotation;
+                }
+                else
+                {
+                    Debug.LogWarning("GameManager: GridVisualizer reference is missing during rotation.");
+                }
+
+                // Add back PieceSpawner rotation update
+                if (pieceSpawner != null)
+                {
+                    pieceSpawner.transform.rotation = currentRotation;
+                }
+                else
+                {
+                    Debug.LogWarning("GameManager: PieceSpawner reference is missing during rotation.");
+                }
+
+                timeElapsed += Time.deltaTime;
+                yield return null; // Wait for the next frame
+            }
+
+            // Ensure final rotation is exact for the visualizer and spawner
+            Quaternion finalRotation = Quaternion.Euler(0, targetAngleY, 0);
+             if (gridVisualizer != null) gridVisualizer.transform.rotation = finalRotation;
+             if (pieceSpawner != null) pieceSpawner.transform.rotation = finalRotation; // Add back PieceSpawner final rotation set
+
+            currentGridRotationY = targetAngleY; // Update the current state
+            isRotating = false;
+            Debug.Log($"Smooth rotation finished at {currentGridRotationY}");
+
+            // Optional: Camera adjustment if needed
+            // CameraController cameraController = FindObjectOfType<CameraController>();
+            // if (cameraController != null) cameraController.AdjustForGridRotation(currentGridRotationY);
         }
     }
 }

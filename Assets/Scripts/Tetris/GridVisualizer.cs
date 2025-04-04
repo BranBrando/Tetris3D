@@ -446,5 +446,7 @@ namespace TetrisGame
 
             Debug.Log("Applied material fixes manually to all LineRenderer components.");
         }
+
+        // Removed: RotateVisualizer method (Rotation now handled by GameManager coroutine)
     }
 }

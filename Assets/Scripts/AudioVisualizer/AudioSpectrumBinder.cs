@@ -8,8 +8,7 @@ public class AudioSpectrumBinder : MonoBehaviour
     [Tooltip("The Visual Effect component to bind the spectrum data to.")]
     public VisualEffect targetVisualEffect;
 
-    [Tooltip("The name of the Texture2D property exposed in the VFX Graph.")]
-    public string spectrumTextureProperty = "_SpectrumTexture";
+    // Removed spectrumTextureProperty as we now send a single bass value
 
     [Tooltip("The number of samples to retrieve from the audio spectrum. Must be a power of 2 (e.g., 64, 128, 256, 512).")]
     public int spectrumSize = 128;
@@ -17,8 +16,18 @@ public class AudioSpectrumBinder : MonoBehaviour
     [Tooltip("The FFT window type to use for spectrum analysis.")]
     public FFTWindow fftWindow = FFTWindow.BlackmanHarris;
 
-    [Tooltip("A multiplier to scale the raw amplitude values before sending them to the VFX Graph.")]
-    public float amplitudeScale = 10.0f; // Increased default for better visibility initially
+    [Tooltip("A multiplier to scale the calculated bass amplitude before sending it to the VFX Graph.")]
+    public float amplitudeScale = 10.0f; // Scales the final 808 value
+
+    [Header("808 Detection (Frequency Range)")]
+    [Tooltip("The lower frequency bound for 808 detection (Hz).")]
+    public float min808Frequency = 40.0f;
+    [Tooltip("The upper frequency bound for 808 detection (Hz).")]
+    public float max808Frequency = 80.0f;
+    [Tooltip("The threshold for the bass amplitude to be considered significant.")]
+    public float threshold = 1.0f;
+    [Tooltip("Name of the Float property in VFX Graph to send the 808 level to.")]
+    public string bassAmplitudeProperty = "_BassAmplitude"; // Keeping name for simplicity, but it's now 808 focused
 
     [Header("Color Change Settings")]
     [Tooltip("Minimum time in seconds between color changes.")]
@@ -30,11 +39,12 @@ public class AudioSpectrumBinder : MonoBehaviour
     [Tooltip("The name of the Float property exposed in the VFX Graph to control overall amplitude scaling.")]
     public string amplitudeScaleGraphProperty = "_AmplitudeScale"; // Added for binding script scale to graph
 
-    // Private variables for spectrum
+    // Private variables for spectrum/bass
     private AudioSource audioSource;
     private float[] spectrumData;
-    private Texture2D spectrumTexture;
-    private Color[] textureColors; // Buffer to hold pixel data
+    private int min808BinIndex; // Calculated index for min frequency
+    private int max808BinIndex; // Calculated index for max frequency
+    // Removed texture variables
 
     // Private variables for color change
     private float timeSinceLastColorChange = 0f;
@@ -42,9 +52,10 @@ public class AudioSpectrumBinder : MonoBehaviour
     private Color currentTargetColor;
 
     // Property IDs for faster lookups
-    private int spectrumTexturePropertyID;
+    // Removed spectrumTexturePropertyID
     private int targetColorPropertyID;
-    private int amplitudeScaleGraphPropertyID; // Added
+    private int amplitudeScaleGraphPropertyID; // For sending script's amplitudeScale value
+    private int bassAmplitudePropertyID; // Added for bass value
 
     void Start()
     {
@@ -52,18 +63,28 @@ public class AudioSpectrumBinder : MonoBehaviour
         Assert.IsNotNull(audioSource, "AudioSource component not found!");
         Assert.IsNotNull(targetVisualEffect, "Target Visual Effect component is not assigned!");
         Assert.IsTrue(Mathf.IsPowerOfTwo(spectrumSize), "Spectrum Size must be a power of two!");
+        Assert.IsTrue(min808Frequency >= 0 && max808Frequency > min808Frequency, "808 Frequency range must be valid (Min >= 0, Max > Min).");
 
-        // Validate if the VFX Graph actually has the property
-        if (!targetVisualEffect.HasTexture(spectrumTextureProperty))
-        {
-            Debug.LogError($"VFX Graph '{targetVisualEffect.visualEffectAsset.name}' does not have an exposed Texture2D property named '{spectrumTextureProperty}'.", targetVisualEffect);
-            this.enabled = false; // Disable script if property is missing
-            return;
-        }
-        // Also validate the color property
+        // Validate VFX Graph properties
+        bool propertiesValid = true;
         if (!targetVisualEffect.HasVector4(targetColorProperty)) // Colors are often Vector4 in VFX Graph
         {
             Debug.LogError($"VFX Graph '{targetVisualEffect.visualEffectAsset.name}' does not have an exposed Vector4 property named '{targetColorProperty}'.", targetVisualEffect);
+            propertiesValid = false;
+        }
+        if (!targetVisualEffect.HasFloat(amplitudeScaleGraphProperty))
+        {
+            Debug.LogError($"VFX Graph '{targetVisualEffect.visualEffectAsset.name}' does not have an exposed Float property named '{amplitudeScaleGraphProperty}'.", targetVisualEffect);
+            propertiesValid = false;
+        }
+        // Validate the new bass property
+        if (!targetVisualEffect.HasFloat(bassAmplitudeProperty))
+        {
+            Debug.LogError($"VFX Graph '{targetVisualEffect.visualEffectAsset.name}' does not have an exposed Float property named '{bassAmplitudeProperty}'.", targetVisualEffect);
+            propertiesValid = false;
+        }
+
+        if (!propertiesValid) {
             this.enabled = false; // Disable script if property is missing
             return;
         }
@@ -71,36 +92,26 @@ public class AudioSpectrumBinder : MonoBehaviour
         if (!targetVisualEffect.HasFloat(amplitudeScaleGraphProperty))
         {
             Debug.LogError($"VFX Graph '{targetVisualEffect.visualEffectAsset.name}' does not have an exposed Float property named '{amplitudeScaleGraphProperty}'.", targetVisualEffect);
-            this.enabled = false; // Disable script if property is missing
+            this.enabled = false;
             return;
         }
 
-
-        spectrumTexturePropertyID = Shader.PropertyToID(spectrumTextureProperty);
+        // Get property IDs
         targetColorPropertyID = Shader.PropertyToID(targetColorProperty);
-        amplitudeScaleGraphPropertyID = Shader.PropertyToID(amplitudeScaleGraphProperty); // Added
+        amplitudeScaleGraphPropertyID = Shader.PropertyToID(amplitudeScaleGraphProperty);
+        bassAmplitudePropertyID = Shader.PropertyToID(bassAmplitudeProperty);
 
-        // Initialize spectrum data array and texture
+        // Calculate frequency bin indices
+        CalculateFrequencyBinIndices();
+
+        // Initialize spectrum data array (texture stuff removed)
         spectrumData = new float[spectrumSize];
-        // Use RFloat format for single-channel, high-precision data
-        spectrumTexture = new Texture2D(spectrumSize, 1, TextureFormat.RFloat, false);
-        spectrumTexture.filterMode = FilterMode.Point; // Use Point filter for sharp data
-        spectrumTexture.wrapMode = TextureWrapMode.Clamp;
-        textureColors = new Color[spectrumSize]; // Initialize color buffer
-
-        // Initial clear of texture (optional, but good practice)
-        for (int i = 0; i < spectrumSize; i++)
-        {
-            textureColors[i] = new Color(0, 0, 0, 0);
-        }
-        spectrumTexture.SetPixels(textureColors);
-        spectrumTexture.Apply();
-
-        // Set the texture initially on the VFX Graph
-        targetVisualEffect.SetTexture(spectrumTexturePropertyID, spectrumTexture);
 
         // Initialize color change logic
         InitializeColorChange();
+
+        // Set initial bass value (optional, defaults to 0)
+        targetVisualEffect.SetFloat(bassAmplitudePropertyID, 0f);
     }
 
     void InitializeColorChange()
@@ -115,6 +126,23 @@ public class AudioSpectrumBinder : MonoBehaviour
         targetVisualEffect.SetVector4(targetColorPropertyID, currentTargetColor);
     }
 
+    void CalculateFrequencyBinIndices()
+    {
+        float nyquistFrequency = AudioSettings.outputSampleRate / 2.0f;
+        float frequencyResolution = nyquistFrequency / spectrumSize;
+
+        min808BinIndex = Mathf.Clamp(Mathf.FloorToInt(min808Frequency / frequencyResolution), 0, spectrumSize - 1);
+        max808BinIndex = Mathf.Clamp(Mathf.CeilToInt(max808Frequency / frequencyResolution), min808BinIndex, spectrumSize - 1); // Ensure max >= min
+
+        if (min808Frequency / frequencyResolution > spectrumSize -1) {
+             Debug.LogWarning($"Min 808 Frequency ({min808Frequency} Hz) is too high for the current spectrum size ({spectrumSize}) and sample rate ({AudioSettings.outputSampleRate} Hz). Clamping to max bin.");
+        }
+         if (max808Frequency / frequencyResolution > spectrumSize -1) {
+             Debug.LogWarning($"Max 808 Frequency ({max808Frequency} Hz) is too high for the current spectrum size ({spectrumSize}) and sample rate ({AudioSettings.outputSampleRate} Hz). Clamping to max bin.");
+        }
+    }
+
+
     void Update()
     {
         if (targetVisualEffect == null || !this.enabled) return;
@@ -123,23 +151,35 @@ public class AudioSpectrumBinder : MonoBehaviour
         // Channel 0 = Left, Channel 1 = Right. Using 0 for simplicity.
         audioSource.GetSpectrumData(spectrumData, 0, fftWindow);
 
-        // Process the spectrum data and write it to the texture buffer
-        for (int i = 0; i < spectrumSize; i++)
+        // Calculate average amplitude within the 808 frequency range
+        float rangeSum = 0f;
+        int numberOfBinsInRange = max808BinIndex - min808BinIndex + 1;
+
+        if (numberOfBinsInRange > 0)
         {
-            // Apply scaling and potentially other processing (e.g., logarithmic scale)
-            float processedValue = spectrumData[i] * amplitudeScale;
-            // Store the value in the Red channel of the color buffer
-            textureColors[i].r = processedValue;
-            // Other channels (G, B, A) are unused but need to be set
-            textureColors[i].g = 0;
-            textureColors[i].b = 0;
-            textureColors[i].a = 1;
+            for (int i = min808BinIndex; i <= max808BinIndex; i++)
+            {
+                // Basic check to prevent index out of bounds, though Clamp in Start should handle it
+                if (i >= 0 && i < spectrumData.Length)
+                {
+                    rangeSum += spectrumData[i];
+                }
+            }
+            float averageInRange = rangeSum / numberOfBinsInRange;
+
+            // Apply the overall scaling from the Inspector
+            float final808Value = averageInRange * amplitudeScale;
+            final808Value = final808Value > threshold ? final808Value : 0; 
+
+            // Send the single 808 value to the graph
+            targetVisualEffect.SetFloat(bassAmplitudePropertyID, final808Value);
+        }
+        else
+        {
+             // Send 0 if the range is invalid or zero width
+             targetVisualEffect.SetFloat(bassAmplitudePropertyID, 0f);
         }
 
-
-        // Apply the changes to the spectrum texture
-        spectrumTexture.SetPixels(textureColors);
-        spectrumTexture.Apply();
 
         // Update color change logic
         UpdateColorChange();
@@ -168,11 +208,6 @@ public class AudioSpectrumBinder : MonoBehaviour
 
     void OnDestroy()
     {
-        // Clean up the created texture when the component is destroyed
-        if (spectrumTexture != null)
-        {
-            Destroy(spectrumTexture);
-            spectrumTexture = null;
-        }
+        // No texture to clean up anymore
     }
 }

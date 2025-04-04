@@ -20,6 +20,7 @@ namespace TetrisGame
         private bool isActive = true;
         private bool isQuickFalling = false;
         private GameObject ghostPieceObj;
+        // Removed: private Quaternion currentGridRotation = Quaternion.identity;
 
         private void Start()
         {
@@ -76,18 +77,18 @@ namespace TetrisGame
                 MoveDown();
                 return;
             }
-            
+
             // Handle horizontal and depth movement
-            Move(direction);
+            Move(direction); // Reverted: Use direction directly
         }
-        
+
         // Event handler for rotation input
         private void OnRotationHandler(Vector3 rotation)
         {
             if (!isActive) return;
-            Rotate(rotation);
+            Rotate(rotation); // Reverted: Apply rotation directly
         }
-        
+
         // Event handler for speed input
         private void OnSpeedHandler(bool isSpeedUp)
         {
@@ -157,10 +158,10 @@ namespace TetrisGame
             // Store original rotation and position
             Quaternion originalRotation = transform.rotation;
             Vector3 originalPosition = transform.position;
-            
+
             // Apply rotation
-            transform.Rotate(rotation, Space.World);
-            
+            transform.Rotate(rotation, Space.World); // Reverted: Apply rotation directly
+
             // Validate position after rotation
             if (!IsValidPosition())
             {
@@ -222,7 +223,9 @@ namespace TetrisGame
             }
             return true;
         }
-        
+
+        // Removed: SetGridRotation method
+
         private void CreateGhostPiece()
         {
             if (ghostPieceObj != null) Destroy(ghostPieceObj);

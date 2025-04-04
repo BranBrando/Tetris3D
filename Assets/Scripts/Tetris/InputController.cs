@@ -20,10 +20,13 @@ namespace TetrisGame
         [SerializeField] private KeyCode rotateXKey = KeyCode.J;
         [SerializeField] private KeyCode rotateYKey = KeyCode.K;
         [SerializeField] private KeyCode rotateZKey = KeyCode.L;
-        
+
+        [Header("Grid Rotation Key")]
+        public KeyCode rotateGridKey = KeyCode.Space; // Public for potential external access/config
+
         [Header("Quick Fall Key")]
-        [SerializeField] private KeyCode quickFallKey = KeyCode.Space;
-        
+        [SerializeField] private KeyCode quickFallKey = KeyCode.LeftShift; // Changed from Space
+
         [Header("Sensitivity")]
         [SerializeField] private float inputDelayTime = 0.1f;
         
@@ -31,7 +34,8 @@ namespace TetrisGame
         public event Action<Vector3> OnMovementInput;
         public event Action<Vector3> OnRotationInput;
         public event Action<bool> OnSpeedInput;
-        
+        public event Action OnGridRotateInput; // Event for grid rotation
+
         // Timer variables for input delay
         private float horizontalTimer = 0f;
         private float verticalTimer = 0f;
@@ -43,8 +47,17 @@ namespace TetrisGame
             HandleMovementInput();
             HandleRotationInput();
             HandleSpeedInput();
+            HandleGridRotationInput(); // Call the new handler
         }
-        
+
+        private void HandleGridRotationInput()
+        {
+            if (Input.GetKeyDown(rotateGridKey))
+            {
+                OnGridRotateInput?.Invoke();
+            }
+        }
+
         private void HandleMovementInput()
         {
             horizontalTimer += Time.deltaTime;
@@ -125,12 +138,11 @@ namespace TetrisGame
                 OnRotationInput?.Invoke(rotationDirection);
             }
         }
-        
         private void HandleSpeedInput()
         {
-            // Check if quick fall key is being pressed
-            bool isQuickFalling = Input.GetKey(quickFallKey);
-            
+            // Check if quick fall key is being pressed (Using the updated key)
+            bool isQuickFalling = Input.GetKey(quickFallKey); // Now checks LeftShift by default
+
             // Trigger speed event with the current quick fall state
             OnSpeedInput?.Invoke(isQuickFalling);
         }
@@ -150,6 +162,7 @@ namespace TetrisGame
             OnMovementInput = null;
             OnRotationInput = null;
             OnSpeedInput = null;
+            OnGridRotateInput = null; // Clear grid rotation listeners too
         }
     }
 }
