@@ -21,6 +21,9 @@ namespace TetrisGame
         private bool isRotating = false; // Flag to prevent concurrent rotations
         [SerializeField] private float rotationDuration = 0.5f; // Duration for smooth rotation
 
+        // Public property to check if the grid is currently rotating
+        public bool IsRotating => isRotating;
+
         private float baseFallTime = 3f;
         private float currentFallTime;
 

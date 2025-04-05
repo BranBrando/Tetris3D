@@ -22,6 +22,7 @@ namespace TetrisGame
         private bool isQuickFalling = false;
         private GameObject ghostPieceObj;
         private GridVisualizer gridVisualizer; // Reference for shadow updates
+        private PieceSpawner pieceSpawner; // Added reference for parenting ghost
 
         private void Start()
         {
@@ -45,6 +46,13 @@ namespace TetrisGame
             if (gridVisualizer == null)
             {
                 Debug.LogWarning("Tetromino could not find GridVisualizer!");
+            }
+
+            // Find the PieceSpawner
+            pieceSpawner = FindFirstObjectByType<PieceSpawner>();
+            if (pieceSpawner == null)
+            {
+                Debug.LogWarning("Tetromino could not find PieceSpawner! Ghost piece will not be parented.");
             }
 
             // Create ghost piece
@@ -72,7 +80,8 @@ namespace TetrisGame
             {
                 Destroy(ghostPieceObj);
             }
-        }
+
+        } // Correct closing brace for OnDestroy
         
         // Event handler for movement input
         private void OnMovementHandler(Vector3 direction)
@@ -275,6 +284,13 @@ namespace TetrisGame
             // Create a copy of the tetromino
             ghostPieceObj = Instantiate(gameObject, transform.position, transform.rotation);
             
+            // Set parent to PieceSpawner if found
+            if (pieceSpawner != null)
+            {
+                ghostPieceObj.transform.SetParent(pieceSpawner.transform, true); // Keep world position
+            }
+
+            ghostPieceObj.transform.localScale = new Vector3(0.99f, 0.99f, 0.99f); 
             // Setup ghost material
             foreach (Transform child in ghostPieceObj.transform)
             {
@@ -288,7 +304,7 @@ namespace TetrisGame
                     Material ghostInstanceMat = new Material(baseMat); 
                     
                     // Apply the alpha from the script variable
-                    Color ghostColor = ghostInstanceMat.color;
+                    Color ghostColor = Color.gray;
                     ghostColor.a = ghostAlpha;
                     ghostInstanceMat.color = ghostColor;
 
@@ -319,11 +335,11 @@ namespace TetrisGame
                         if (ghostInstanceMat.HasProperty("_ZWrite"))
                         {
                              ghostInstanceMat.SetInt("_ZWrite", 0);
-                        }
-                        // Set render queue to Transparent
-                        ghostInstanceMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-                    }
-                    catch (System.Exception ex)
+                         }
+                         // Set render queue to Transparent + 1 to potentially help sorting
+                         ghostInstanceMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent + 1;
+                     }
+                     catch (System.Exception ex)
                     {
                         Debug.LogWarning($"Tetromino: Could not set URP transparency properties on ghost material '{ghostInstanceMat.name}'. Shader might not be URP/Lit or compatible. Error: {ex.Message}", child.gameObject);
                     }
@@ -347,6 +363,9 @@ namespace TetrisGame
         
         private void UpdateGhostPiece()
         {
+            // Skip update if the grid is currently rotating
+            if (GameManager.Instance != null && GameManager.Instance.IsRotating) return;
+
             if (ghostPieceObj == null || !ghostPieceObj.activeSelf || !isActive || GameManager.Instance == null) return;
             
             // Match position and rotation of real piece
