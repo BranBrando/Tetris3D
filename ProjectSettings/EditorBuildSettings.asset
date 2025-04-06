@@ -9,7 +9,7 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: bac878b2e122bf343a7c17b2ef3ac23c
   - enabled: 1
-    path: Assets/Scenes/TetrisGame.unity
+    path: Assets/Scenes/Scene1.unity
     guid: 7e15f275d8cc5b549b2495fc78b5bfbe
   m_configObjects:
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 87ac6c6bfc4d7ab46bdb086bb01a6484,

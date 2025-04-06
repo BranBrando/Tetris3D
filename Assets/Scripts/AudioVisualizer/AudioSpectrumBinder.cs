@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.VFX;
 using UnityEngine.Assertions;
 
-[RequireComponent(typeof(AudioSource))]
+// Removed: [RequireComponent(typeof(AudioSource))]
 public class AudioSpectrumBinder : MonoBehaviour
 {
     [Tooltip("The Visual Effect component to bind the spectrum data to.")]
@@ -59,8 +59,20 @@ public class AudioSpectrumBinder : MonoBehaviour
 
     void Start()
     {
-        audioSource = GetComponent<AudioSource>();
-        Assert.IsNotNull(audioSource, "AudioSource component not found!");
+        // Get AudioSource from AudioManager singleton
+        if (AudioManager.Instance != null && AudioManager.Instance.SourceComponent != null)
+        {
+            audioSource = AudioManager.Instance.SourceComponent;
+        }
+        else
+        {
+            Debug.LogError("AudioSpectrumBinder could not find AudioManager instance or its AudioSource component! Disabling binder.", this);
+            this.enabled = false; // Disable the script if we can't find the source
+            return; // Stop further execution in Start if source is missing
+        }
+
+        // Existing assertions (audioSource should now be assigned if we reached here)
+        Assert.IsNotNull(audioSource, "AudioSource component could not be retrieved from AudioManager!");
         Assert.IsNotNull(targetVisualEffect, "Target Visual Effect component is not assigned!");
         Assert.IsTrue(Mathf.IsPowerOfTwo(spectrumSize), "Spectrum Size must be a power of two!");
         Assert.IsTrue(min808Frequency >= 0 && max808Frequency > min808Frequency, "808 Frequency range must be valid (Min >= 0, Max > Min).");

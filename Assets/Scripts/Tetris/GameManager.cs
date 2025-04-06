@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections; // Required for Coroutines
+using UnityEngine.SceneManagement; // Needed for SceneManager
 
 namespace TetrisGame
 {
@@ -87,6 +88,22 @@ namespace TetrisGame
 
             // Initial piece spawn
             // SpawnNewPiece();
+
+            // Play background sound based on scene name
+            PlaySceneBackgroundSound();
+        }
+
+        private void PlaySceneBackgroundSound()
+        {
+            if (AudioManager.Instance != null)
+            {
+                string sceneName = SceneManager.GetActiveScene().name;
+                AudioManager.Instance.PlaySound(sceneName); // Assumes a sound named after the scene exists
+            }
+            else
+            {
+                Debug.LogWarning("AudioManager instance not found. Cannot play scene background sound.");
+            }
         }
 
         // Unsubscribe when the GameManager is destroyed
@@ -172,7 +189,7 @@ namespace TetrisGame
                 Vector3Int gridPos = WorldToGridPosition(block.position);
                 gridSystem.StoreBlock(gridPos, block);
             }
-            
+
             CheckForCompletedPlanes();
             if(!IsGameOver())
             {
@@ -235,12 +252,12 @@ namespace TetrisGame
                     if (gridSystem.IsPositionOccupied(new Vector3Int(x, gridHeight - 1, z)))
                     {
                         Debug.LogWarning("Game over");
-                        return true;
+                        return true; // Game over if top row is occupied
                     }
                 }
             }
-            return false;
-        }
+            return false; // If no blocks found in the top row, game is not over
+        } // Closing brace for IsGameOver
 
         private void SpawnNewPiece()
         {

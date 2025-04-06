@@ -7,12 +7,14 @@ using System.Collections.Generic; // Required for List
 public class MainMenuController : MonoBehaviour
 {
     // Name of the scene to load when Start is clicked
-    public string gameSceneName = "TetrisGame"; // Make sure this matches your game scene filename
+    public string gameSceneName = "Scene1"; // Make sure this matches your game scene filename
 
     // Reference to the Settings Panel GameObject
     public GameObject settingsPanel;
     // Reference to the Graphics Dropdown
     public TMP_Dropdown graphicsDropdown;
+    // Reference to the Volume Slider
+    public Slider volumeSlider;
 
     void Start()
     {
@@ -39,6 +41,37 @@ public class MainMenuController : MonoBehaviour
         else
         {
             Debug.LogWarning("Graphics Dropdown not assigned in MainMenuController.");
+        }
+
+        // Setup Volume Slider Listener and Initial Value
+        if (volumeSlider != null)
+        {
+            // Remove existing listeners to prevent duplicates if set in Inspector
+            volumeSlider.onValueChanged.RemoveAllListeners();
+            // Add our listener function
+            volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
+
+            // Set initial slider value from AudioManager
+            if (AudioManager.Instance != null)
+            {
+                float currentVolume = AudioManager.Instance.GetMasterVolume();
+                if (currentVolume >= 0) // Check if GetMasterVolume succeeded
+                {
+                    volumeSlider.value = currentVolume;
+                }
+                else
+                {
+                     Debug.LogWarning("Could not retrieve initial volume from AudioManager. Slider not set.");
+                }
+            }
+             else
+             {
+                 Debug.LogWarning("AudioManager instance not found at Start. Cannot set initial slider volume.");
+             }
+        }
+        else
+        {
+            Debug.LogWarning("Volume Slider not assigned in MainMenuController.");
         }
     }
 
@@ -76,10 +109,17 @@ public class MainMenuController : MonoBehaviour
     // Function to be called by the Volume Slider's OnValueChanged event
     public void OnVolumeChanged(float value)
     {
-        // Placeholder: Implement volume control logic here
-        // Example: AudioListener.volume = value;
-        // Or better: Use AudioMixer exposed parameters
-        Debug.Log("Volume changed to: " + value);
+        // Call the AudioManager to set the master volume via the mixer
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.SetMasterVolume(value);
+        }
+        else
+        {
+            Debug.LogWarning("AudioManager instance not found. Cannot set volume.");
+        }
+        // Optional: Log the linear value for debugging
+        // Debug.Log("Volume slider changed to (linear): " + value);
     }
 
     // Function to be called by the Graphics Dropdown's OnValueChanged event
