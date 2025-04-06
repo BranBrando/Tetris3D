@@ -23,6 +23,7 @@ namespace TetrisGame
         private GameObject ghostPieceObj;
         private GridVisualizer gridVisualizer; // Reference for shadow updates
         private PieceSpawner pieceSpawner; // Added reference for parenting ghost
+        private List<Renderer> ghostBlockRenderers = new List<Renderer>(); // Added cache for ghost renderers
 
         private void Start()
         {
@@ -78,6 +79,11 @@ namespace TetrisGame
             // Destroy ghost piece if it exists
             if (ghostPieceObj != null)
             {
+                // Ensure renderers are enabled before destroying, just in case
+                foreach (Renderer rend in ghostBlockRenderers)
+                {
+                    if (rend != null) rend.enabled = true;
+                }
                 Destroy(ghostPieceObj);
             }
 
@@ -142,6 +148,9 @@ namespace TetrisGame
             // Update ghost piece position
             UpdateGhostPiece();
 
+            // Update ghost block visibility based on active piece overlap
+            UpdateGhostBlockVisibility(); // Added call
+
             // Update visualizer shadows
             UpdateVisualizerShadows();
         }
@@ -173,6 +182,8 @@ namespace TetrisGame
             }
             else
             {
+                UpdateGhostPiece(); // Ensure ghost is updated after move
+                UpdateGhostBlockVisibility(); // Update visibility after move
                 UpdateVisualizerShadows(); // Update shadows after successful move
             }
         }
@@ -200,11 +211,15 @@ namespace TetrisGame
                 }
                 else
                 {
+                     UpdateGhostPiece(); // Ensure ghost is updated after rotation/kick
+                     UpdateGhostBlockVisibility(); // Update visibility after rotation/kick
                      UpdateVisualizerShadows(); // Update shadows after successful rotation/kick
                 }
             }
             else
             {
+                 UpdateGhostPiece(); // Ensure ghost is updated after rotation
+                 UpdateGhostBlockVisibility(); // Update visibility after rotation
                  UpdateVisualizerShadows(); // Update shadows after successful rotation
             }
         }
@@ -274,6 +289,39 @@ namespace TetrisGame
             }
         }
 
+        // --- Added Method for Ghost Block Visibility ---
+        private void UpdateGhostBlockVisibility()
+        {
+            if (ghostPieceObj == null || !ghostPieceObj.activeSelf || GameManager.Instance == null)
+            {
+                return; // Nothing to do if ghost isn't ready
+            }
+
+            // 1. Get grid positions of all active piece blocks
+            HashSet<Vector3Int> activeBlockGridPositions = new HashSet<Vector3Int>();
+            foreach (Transform activeBlock in transform)
+            {
+                if (activeBlock.gameObject.activeSelf)
+                {
+                    activeBlockGridPositions.Add(GameManager.Instance.WorldToGridPosition(activeBlock.position));
+                }
+            }
+
+            // 2. Iterate through cached ghost renderers and set visibility based on overlap
+            foreach (Renderer ghostRenderer in ghostBlockRenderers)
+            {
+                if (ghostRenderer != null) // Check if renderer is valid
+                {
+                    Vector3Int ghostGridPos = GameManager.Instance.WorldToGridPosition(ghostRenderer.transform.position);
+
+                    // Disable ghost renderer if its grid position overlaps with an active block's position
+                    bool overlaps = activeBlockGridPositions.Contains(ghostGridPos);
+                    ghostRenderer.enabled = !overlaps; // Use renderer.enabled instead of SetActive
+                }
+            }
+        }
+        // --- End Added Method ---
+
 
         // Removed: SetGridRotation method
 
@@ -290,13 +338,17 @@ namespace TetrisGame
                 ghostPieceObj.transform.SetParent(pieceSpawner.transform, true); // Keep world position
             }
 
-            ghostPieceObj.transform.localScale = new Vector3(0.99f, 0.99f, 0.99f); 
-            // Setup ghost material
+            ghostPieceObj.transform.localScale = new Vector3(0.99f, 0.99f, 0.99f);
+            
+            // Clear and cache renderers, setup material
+            ghostBlockRenderers.Clear(); // Clear list before populating
             foreach (Transform child in ghostPieceObj.transform)
             {
                 Renderer renderer = child.GetComponent<Renderer>();
                 if (renderer != null)
                 {
+                    ghostBlockRenderers.Add(renderer); // Add renderer to cache
+
                     // Determine the base material (either from Inspector or original renderer)
                     Material baseMat = (ghostMaterial != null) ? ghostMaterial : renderer.material;
                     
@@ -406,7 +458,19 @@ namespace TetrisGame
             if (ghostPieceObj != null)
             {
                 ghostPieceObj.SetActive(show);
-                if (show) UpdateGhostPiece();
+                if (show)
+                {
+                    UpdateGhostPiece();
+                    UpdateGhostBlockVisibility(); // Also update visibility when shown
+                }
+                else
+                {
+                    // Ensure all renderers are re-enabled when hiding the ghost object
+                    foreach (Renderer rend in ghostBlockRenderers)
+                    {
+                        if (rend != null) rend.enabled = true;
+                    }
+                }
             }
         }
     }

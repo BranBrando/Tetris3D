@@ -9,6 +9,9 @@ namespace TetrisGame
     /// </summary>
     public class InputController : MonoBehaviour
     {
+        // Add reference to GameManager
+        private GameManager gameManager;
+
         [Header("Movement Keys")]
         [SerializeField] private KeyCode moveLeftKey = KeyCode.A;
         [SerializeField] private KeyCode moveRightKey = KeyCode.D;
@@ -41,13 +44,33 @@ namespace TetrisGame
         private float verticalTimer = 0f;
         private float depthTimer = 0f;
         private float rotationTimer = 0f;
+
+        // Find GameManager in Start
+        private void Start()
+        {
+            gameManager = GameManager.Instance; // Get the singleton instance
+            if (gameManager == null)
+            {
+                Debug.LogError("InputController could not find GameManager instance!");
+            }
+        }
         
         private void Update()
         {
+            // Always handle speed (falling) and grid rotation input
+            HandleSpeedInput();
+            HandleGridRotationInput();
+
+            // Check if the grid is currently rotating
+            if (gameManager != null && gameManager.IsRotating)
+            {
+                // If rotating, skip piece movement and piece rotation inputs
+                return; // Exit before calling HandleMovementInput and HandleRotationInput
+            }
+
+            // If not rotating, handle piece movement and rotation as normal
             HandleMovementInput();
             HandleRotationInput();
-            HandleSpeedInput();
-            HandleGridRotationInput(); // Call the new handler
         }
 
         private void HandleGridRotationInput()
