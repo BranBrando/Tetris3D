@@ -11,10 +11,7 @@ public class MainMenuController : MonoBehaviour
 
     // Reference to the Settings Panel GameObject
     public GameObject settingsPanel;
-    // Reference to the Graphics Dropdown
-    public TMP_Dropdown graphicsDropdown;
-    // Reference to the Volume Slider
-    public Slider volumeSlider;
+    // Removed: References to graphics dropdown and volume slider are now in SettingsController
 
     void Start()
     {
@@ -23,57 +20,24 @@ public class MainMenuController : MonoBehaviour
         {
             settingsPanel.SetActive(false);
         }
+        // Removed: Initialization logic for graphics/volume is now in SettingsController
+        // Play background sound based on scene name
+        PlaySceneBackgroundSound();
+    }
 
-        // Populate Graphics Dropdown
-        if (graphicsDropdown != null)
+    private void PlaySceneBackgroundSound()
+    {
+        if (AudioManager.Instance != null)
         {
-            graphicsDropdown.ClearOptions();
-            // Get quality level names from QualitySettings
-            graphicsDropdown.AddOptions(new List<string>(QualitySettings.names));
-            // Set dropdown to current quality level
-            graphicsDropdown.value = QualitySettings.GetQualityLevel();
-            graphicsDropdown.RefreshShownValue();
-            // Add listener for when the value changes
-            // Note: Linking via Inspector is often preferred, but this shows programmatic linking.
-            // If linked via Inspector, this line might cause double calls.
-            graphicsDropdown.onValueChanged.AddListener(OnGraphicsQualityChanged);
+            string sceneName = SceneManager.GetActiveScene().name;
+            AudioManager.Instance.PlaySound(sceneName); // Assumes a sound named after the scene exists
         }
         else
         {
-            Debug.LogWarning("Graphics Dropdown not assigned in MainMenuController.");
-        }
-
-        // Setup Volume Slider Listener and Initial Value
-        if (volumeSlider != null)
-        {
-            // Remove existing listeners to prevent duplicates if set in Inspector
-            volumeSlider.onValueChanged.RemoveAllListeners();
-            // Add our listener function
-            volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
-
-            // Set initial slider value from AudioManager
-            if (AudioManager.Instance != null)
-            {
-                float currentVolume = AudioManager.Instance.GetMasterVolume();
-                if (currentVolume >= 0) // Check if GetMasterVolume succeeded
-                {
-                    volumeSlider.value = currentVolume;
-                }
-                else
-                {
-                     Debug.LogWarning("Could not retrieve initial volume from AudioManager. Slider not set.");
-                }
-            }
-             else
-             {
-                 Debug.LogWarning("AudioManager instance not found at Start. Cannot set initial slider volume.");
-             }
-        }
-        else
-        {
-            Debug.LogWarning("Volume Slider not assigned in MainMenuController.");
+            Debug.LogWarning("AudioManager instance not found. Cannot play scene background sound.");
         }
     }
+
 
     // Function to be called by the Start Button's OnClick event
     public void StartGame()
@@ -96,49 +60,20 @@ public class MainMenuController : MonoBehaviour
         }
     }
 
-    // Function to be called by the Back Button within the Settings Panel
-    public void CloseSettings()
-    {
-        Debug.Log("Close Settings Panel");
-        if (settingsPanel != null)
-        {
-            settingsPanel.SetActive(false);
-        }
-    }
-
-    // Function to be called by the Volume Slider's OnValueChanged event
-    public void OnVolumeChanged(float value)
-    {
-        // Call the AudioManager to set the master volume via the mixer
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.SetMasterVolume(value);
-        }
-        else
-        {
-            Debug.LogWarning("AudioManager instance not found. Cannot set volume.");
-        }
-        // Optional: Log the linear value for debugging
-        // Debug.Log("Volume slider changed to (linear): " + value);
-    }
-
-    // Function to be called by the Graphics Dropdown's OnValueChanged event
-    public void OnGraphicsQualityChanged(int index)
-    {
-        Debug.Log($"Graphics Quality changed to index: {index}, name: {QualitySettings.names[index]}");
-        QualitySettings.SetQualityLevel(index);
-    }
+    // Removed: CloseSettings logic is now handled by SettingsController.ClosePanel()
+    // Removed: OnVolumeChanged logic is now in SettingsController
+    // Removed: OnGraphicsQualityChanged logic is now in SettingsController
 
     // Function to be called by the Quit Button's OnClick event
     public void QuitGame()
     {
         Debug.Log("Quit Button Clicked");
         // Application.Quit() only works in standalone builds, not in the Editor
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
-        #else
+#else
         Application.Quit();
-        #endif
+#endif
     }
 
 }

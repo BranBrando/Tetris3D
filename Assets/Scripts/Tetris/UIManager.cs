@@ -12,7 +12,7 @@ namespace TetrisGame
         [SerializeField] private TMP_Text planesText;
         
         [Header("Game Info UI")]
-        [SerializeField] private GameObject controlsPanel;
+        [SerializeField] private GameObject settingsPanel; // Renamed from controlsPanel
         [SerializeField] private GameObject gameOverPanel;
         [SerializeField] private Button restartButton;
         
@@ -29,8 +29,8 @@ namespace TetrisGame
             if (gameOverPanel != null)
                 gameOverPanel.SetActive(false);
                 
-            if (controlsPanel != null)
-                controlsPanel.SetActive(false);
+            if (settingsPanel != null) // Renamed from controlsPanel
+                settingsPanel.SetActive(false); // Renamed from controlsPanel
                 
             if (restartButton != null)
                 restartButton.onClick.AddListener(RestartGame);
@@ -69,35 +69,38 @@ namespace TetrisGame
                 ShowGameOver();
             }
             
-            // Toggle controls panel
-            if (Input.GetKeyDown(KeyCode.F1))
+            // Toggle settings panel (using escape key for now)
+            if (Input.GetKeyDown(KeyCode.Escape))
             {
-                ToggleControlsPanel();
+                ToggleSettingsPanel(); // Renamed method call
             }
         }
         
-        private void ShowControlsTemporarily()
+        // Renamed method
+        private void ShowSettingsTemporarily() 
         {
-            if (controlsPanel != null)
+            if (settingsPanel != null) // Renamed variable
             {
-                controlsPanel.SetActive(true);
-                Invoke("HideControls", 5f); // Hide after 5 seconds
+                settingsPanel.SetActive(true); // Renamed variable
+                Invoke("HideSettings", 5f); // Renamed method call
             }
         }
         
-        private void HideControls()
+        // Renamed method
+        private void HideSettings() 
         {
-            if (controlsPanel != null)
+            if (settingsPanel != null) // Renamed variable
             {
-                controlsPanel.SetActive(false);
+                settingsPanel.SetActive(false); // Renamed variable
             }
         }
         
-        private void ToggleControlsPanel()
+        // Renamed method
+        private void ToggleSettingsPanel() 
         {
-            if (controlsPanel != null)
+            if (settingsPanel != null) // Renamed variable
             {
-                controlsPanel.SetActive(!controlsPanel.activeSelf);
+                settingsPanel.SetActive(!settingsPanel.activeSelf); // Renamed variable
             }
         }
         

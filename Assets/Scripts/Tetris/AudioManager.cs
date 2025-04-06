@@ -27,8 +27,6 @@ public class AudioManager : MonoBehaviour
             DontDestroyOnLoad(gameObject); // Make this object persistent across scenes
             audioSource = GetComponent<AudioSource>(); // Get the AudioSource component
             SourceComponent = audioSource; // Assign the public accessor
-            string sceneName = SceneManager.GetActiveScene().name;
-            PlaySound(sceneName); // Play background music on start
         }
         else if (Instance != this)
         {
