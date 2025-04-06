@@ -17,18 +17,24 @@ namespace TetrisGame
         [SerializeField] private KeyCode moveRightKey = KeyCode.D;
         [SerializeField] private KeyCode moveForwardKey = KeyCode.W;
         [SerializeField] private KeyCode moveBackwardKey = KeyCode.S;
-        [SerializeField] private KeyCode moveDownKey = KeyCode.DownArrow;
+        // Changed: Default value to Space
+        [SerializeField] private KeyCode moveDownKey = KeyCode.Space;
         
         [Header("Rotation Keys")]
         [SerializeField] private KeyCode rotateXKey = KeyCode.J;
         [SerializeField] private KeyCode rotateYKey = KeyCode.K;
         [SerializeField] private KeyCode rotateZKey = KeyCode.L;
 
-        [Header("Grid Rotation Key")]
-        public KeyCode rotateGridKey = KeyCode.Space; // Public for potential external access/config
+        // Removed: [Header("Grid Rotation Key")]
+        // Removed: public KeyCode rotateGridKey = KeyCode.Space;
 
-        [Header("Quick Fall Key")]
-        [SerializeField] private KeyCode quickFallKey = KeyCode.LeftShift; // Changed from Space
+        // Added: New Grid Rotation Keys
+        [Header("Grid Rotation Keys")]
+        [SerializeField] private KeyCode rotateGridCWKey = KeyCode.Q; // Clockwise
+        [SerializeField] private KeyCode rotateGridCCWKey = KeyCode.E; // Counter-Clockwise
+
+        // Removed: [Header("Quick Fall Key")]
+        // Removed: [SerializeField] private KeyCode quickFallKey = KeyCode.Space;
 
         [Header("Sensitivity")]
         [SerializeField] private float inputDelayTime = 0.1f;
@@ -36,8 +42,9 @@ namespace TetrisGame
         // Events that tetromino objects can subscribe to
         public event Action<Vector3> OnMovementInput;
         public event Action<Vector3> OnRotationInput;
-        public event Action<bool> OnSpeedInput;
-        public event Action OnGridRotateInput; // Event for grid rotation
+        // Removed: public event Action<bool> OnSpeedInput;
+        // Changed: Event signature to pass direction
+        public event Action<int> OnGridRotateInput; // Event for grid rotation (1 for CW, -1 for CCW)
 
         // Timer variables for input delay
         private float horizontalTimer = 0f;
@@ -57,8 +64,7 @@ namespace TetrisGame
         
         private void Update()
         {
-            // Always handle speed (falling) and grid rotation input
-            HandleSpeedInput();
+            // Removed: HandleSpeedInput();
             HandleGridRotationInput();
 
             // Check if the grid is currently rotating
@@ -73,11 +79,22 @@ namespace TetrisGame
             HandleRotationInput();
         }
 
+        // Changed: Method logic for Q/E keys and direction
         private void HandleGridRotationInput()
         {
-            if (Input.GetKeyDown(rotateGridKey))
+            int direction = 0;
+            if (Input.GetKeyDown(rotateGridCWKey)) // Q key
             {
-                OnGridRotateInput?.Invoke();
+                direction = 1; // Clockwise
+            }
+            else if (Input.GetKeyDown(rotateGridCCWKey)) // E key
+            {
+                direction = -1; // Counter-Clockwise
+            }
+
+            if (direction != 0)
+            {
+                OnGridRotateInput?.Invoke(direction);
             }
         }
 
@@ -161,14 +178,8 @@ namespace TetrisGame
                 OnRotationInput?.Invoke(rotationDirection);
             }
         }
-        private void HandleSpeedInput()
-        {
-            // Check if quick fall key is being pressed (Using the updated key)
-            bool isQuickFalling = Input.GetKey(quickFallKey); // Now checks LeftShift by default
 
-            // Trigger speed event with the current quick fall state
-            OnSpeedInput?.Invoke(isQuickFalling);
-        }
+        // Removed: HandleSpeedInput() method
         
         // Reset input state (useful when pausing or changing scenes)
         public void ResetInputState()
@@ -184,8 +195,9 @@ namespace TetrisGame
         {
             OnMovementInput = null;
             OnRotationInput = null;
-            OnSpeedInput = null;
-            OnGridRotateInput = null; // Clear grid rotation listeners too
+            // Removed: OnSpeedInput = null;
+            // Changed: Comment reflects event signature change
+            OnGridRotateInput = null; // Clear grid rotation listeners too (now Action<int>)
         }
     }
 }

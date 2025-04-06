@@ -369,12 +369,12 @@ MonoBehaviour:
   moveRightKey: 100
   moveForwardKey: 119
   moveBackwardKey: 115
-  moveDownKey: 274
+  moveDownKey: 32
   rotateXKey: 106
   rotateYKey: 107
   rotateZKey: 108
-  rotateGridKey: 32
-  quickFallKey: 304
+  rotateGridCWKey: 113
+  rotateGridCCWKey: 101
   inputDelayTime: 0.1
 --- !u!4 &163153106
 Transform:

@@ -9,8 +9,8 @@ namespace TetrisGame
     /// </summary>
     public class Tetromino : MonoBehaviour
     {
-        [Header("Movement Settings")]
-        [SerializeField] private float quickFallMultiplier = 5f;
+        // Removed: [Header("Movement Settings")]
+        // Removed: [SerializeField] private float quickFallMultiplier = 5f;
         
         [Header("Ghost Piece Settings")]
         [SerializeField] private Material ghostMaterial;
@@ -19,7 +19,7 @@ namespace TetrisGame
         // Movement and state variables
         private float fallTimer = 0f;
         private bool isActive = true;
-        private bool isQuickFalling = false;
+        // Removed: private bool isQuickFalling = false;
         private GameObject ghostPieceObj;
         private GridVisualizer gridVisualizer; // Reference for shadow updates
         private PieceSpawner pieceSpawner; // Added reference for parenting ghost
@@ -40,7 +40,7 @@ namespace TetrisGame
             // Subscribe to input events - using local delegates to avoid issues
             inputController.OnMovementInput += OnMovementHandler;
             inputController.OnRotationInput += OnRotationHandler;
-            inputController.OnSpeedInput += OnSpeedHandler;
+            // Removed: inputController.OnSpeedInput += OnSpeedHandler;
 
             // Find the GridVisualizer
             gridVisualizer = FindFirstObjectByType<GridVisualizer>();
@@ -73,7 +73,7 @@ namespace TetrisGame
                 // Unsubscribe from events using the same delegates
                 inputController.OnMovementInput -= OnMovementHandler;
                 inputController.OnRotationInput -= OnRotationHandler;
-                inputController.OnSpeedInput -= OnSpeedHandler;
+                // Removed: inputController.OnSpeedInput -= OnSpeedHandler;
             }
             
             // Destroy ghost piece if it exists
@@ -112,12 +112,7 @@ namespace TetrisGame
             Rotate(rotation); // Reverted: Apply rotation directly
         }
 
-        // Event handler for speed input
-        private void OnSpeedHandler(bool isSpeedUp)
-        {
-            if (!isActive) return;
-            isQuickFalling = isSpeedUp;
-        }
+        // Removed: OnSpeedHandler method
 
         private void Update()
         {
@@ -133,11 +128,11 @@ namespace TetrisGame
             fallTimer += Time.deltaTime;
             float currentFallTime = GameManager.Instance.GetCurrentFallTime();
             
-            // Apply quick fall multiplier if active
-            if (isQuickFalling)
-            {
-                currentFallTime /= quickFallMultiplier;
-            }
+            // Removed: Quick fall logic
+            // if (isQuickFalling)
+            // {
+            //     currentFallTime /= quickFallMultiplier;
+            // }
             
             if (fallTimer >= currentFallTime)
             {

@@ -50,6 +50,7 @@ namespace TetrisGame
             // Subscribe to the grid rotation input event
             if (inputController != null)
             {
+                // Changed: Subscription uses the new signature
                 inputController.OnGridRotateInput += HandleGridRotation;
             }
             else
@@ -93,6 +94,7 @@ namespace TetrisGame
         {
             if (inputController != null)
             {
+                // Changed: Unsubscription uses the new signature
                 inputController.OnGridRotateInput -= HandleGridRotation;
             }
             // Prevent memory leaks if this instance was the singleton
@@ -110,23 +112,36 @@ namespace TetrisGame
         public Vector3Int WorldToGridPosition(Vector3 worldPosition)
         {
             int x, y, z;
+            float worldX = worldPosition.x;
+            float worldZ = worldPosition.z;
 
             // Calculate Y index (unaffected by Y rotation)
             y = Mathf.FloorToInt(worldPosition.y);
 
-            // Check if grid is rotated (allow for small floating point inaccuracies)
-            if (Mathf.Abs(currentGridRotationY - 180f) < 0.1f)
+            // Use Mathf.Approximately for float comparison
+            if (Mathf.Approximately(currentGridRotationY, 90f))
             {
-                // Rotated 180 degrees: Map world coordinates to opposite side of the grid array
-                // Assuming grid pivot is at (0,0,0) world space for index calculation
-                x = gridWidth - 1 - Mathf.FloorToInt(worldPosition.x);
-                z = gridDepth - 1 - Mathf.FloorToInt(worldPosition.z);
+                // Rotated 90 degrees CW: World X -> Grid Z, World Z -> Grid -X
+                x = gridDepth - 1 - Mathf.FloorToInt(worldZ); // Grid X depends on World Z and Grid Depth
+                z = Mathf.FloorToInt(worldX);                 // Grid Z depends on World X
             }
-            else
+            else if (Mathf.Approximately(currentGridRotationY, 180f))
             {
-                // Not rotated (or close to 0): Standard mapping
-                x = Mathf.FloorToInt(worldPosition.x);
-                z = Mathf.FloorToInt(worldPosition.z);
+                // Rotated 180 degrees: World X -> Grid -X, World Z -> Grid -Z
+                x = gridWidth - 1 - Mathf.FloorToInt(worldX);
+                z = gridDepth - 1 - Mathf.FloorToInt(worldZ);
+            }
+            else if (Mathf.Approximately(currentGridRotationY, 270f))
+            {
+                // Rotated 270 degrees CW: World X -> Grid -Z, World Z -> Grid X
+                x = Mathf.FloorToInt(worldZ);                 // Grid X depends on World Z
+                z = gridWidth - 1 - Mathf.FloorToInt(worldX); // Grid Z depends on World X and Grid Width
+            }
+            else // Default to 0 degrees
+            {
+                // Not rotated: Standard mapping
+                x = Mathf.FloorToInt(worldX);
+                z = Mathf.FloorToInt(worldZ);
             }
 
             return new Vector3Int(x, y, z);
@@ -238,12 +253,16 @@ namespace TetrisGame
 
         }
 
+
+        // Changed: Method signature accepts direction, calculates 90 degree rotation
         // Handles the grid rotation input event from InputController
-        private void HandleGridRotation()
+        private void HandleGridRotation(int direction) // Accepts 1 for CW, -1 for CCW
         {
             if (isRotating) return; // Don't start a new rotation if one is in progress
 
-            targetGridRotationY = (currentGridRotationY + 180f) % 360f; // Calculate the next target angle
+            // Calculate the next target angle (90 degrees CW or CCW)
+            // Add 360f before modulo to handle potential negative results correctly
+            targetGridRotationY = (currentGridRotationY + (direction * 90f) + 360f) % 360f;
             StartCoroutine(SmoothRotateGrid(targetGridRotationY));
         }
 
