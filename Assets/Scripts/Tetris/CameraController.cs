@@ -66,21 +66,6 @@ namespace TetrisGame
             // Update target position with offset
             targetPosition = target.position + targetOffset;
             
-            // Handle orbit around target
-            if (Input.GetKey(orbitKey))
-            {
-                float horizontalInput = Input.GetAxis("Mouse X") * (invertOrbit ? -1 : 1);
-                float verticalInput = Input.GetAxis("Mouse Y") * (invertOrbit ? -1 : 1);
-                
-                transform.RotateAround(targetPosition, Vector3.up, horizontalInput * orbitSpeed * Time.deltaTime);
-                transform.RotateAround(targetPosition, transform.right, -verticalInput * orbitSpeed * Time.deltaTime);
-            }
-            
-            // Handle zoom with mouse wheel
-            float zoomInput = Input.GetAxis("Mouse ScrollWheel") * (invertZoom ? -1 : 1);
-            currentDistance -= zoomInput * zoomSpeed * Time.deltaTime;
-            currentDistance = Mathf.Clamp(currentDistance, minDistance, maxDistance);
-            
             // Calculate desired camera position
             Vector3 direction = (transform.position - targetPosition).normalized;
             Vector3 desiredPosition = targetPosition + direction * currentDistance;

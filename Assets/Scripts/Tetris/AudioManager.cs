@@ -8,8 +8,8 @@ public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance { get; private set; }
 
-    private AudioSource audioSource;
-    public AudioSource SourceComponent { get; private set; } // Public accessor for the AudioSource
+    // Removed single audioSource and SourceComponent
+    // AudioSources will now be managed per Sound object
 
     [Header("Mixer Settings")]
     public AudioMixer mainMixer; // Assign your main AudioMixer asset here
@@ -25,8 +25,12 @@ public class AudioManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject); // Make this object persistent across scenes
-            audioSource = GetComponent<AudioSource>(); // Get the AudioSource component
-            SourceComponent = audioSource; // Assign the public accessor
+
+            // Subscribe to sceneLoaded event
+            SceneManager.sceneLoaded += UpdateAudioSourcesForScene;
+
+            // Initialize audio sources for the starting scene
+            UpdateAudioSourcesForScene(SceneManager.GetActiveScene(), LoadSceneMode.Single);
         }
         else if (Instance != this)
         {
@@ -34,8 +38,94 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    // Method to play a sound by name
-    public void PlaySound(string name)
+    void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= UpdateAudioSourcesForScene;
+    }
+
+    void UpdateAudioSourcesForScene(Scene scene, LoadSceneMode mode)
+    {
+        string currentSceneName = scene.name;
+
+        foreach (Sound s in sounds)
+        {
+            if (s.name != null && s.name.IndexOf(currentSceneName, System.StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                // Sound belongs to this scene
+                if (s.source == null)
+                {
+                    s.source = gameObject.AddComponent<AudioSource>();
+                    s.source.clip = s.clip;
+                    s.source.volume = s.volume;
+                    s.source.pitch = s.pitch;
+                    s.source.loop = s.loop;
+                    s.source.playOnAwake = false;
+
+                    // Optional: Mixer group assignment
+                    // if (mainMixer != null && !string.IsNullOrEmpty(s.outputMixerGroup)) { ... }
+                }
+            }
+            else
+            {
+                // Sound does not belong to this scene
+                if (s.source != null)
+                {
+                    Destroy(s.source);
+                    s.source = null;
+                }
+            }
+        }
+    }
+
+    // Method to play all sounds whose names contain the provided keyword.
+    public void PlaySound(string keyword) // Parameter name changed for clarity
+    {
+        bool soundPlayed = false; // Flag to track if any sound was played
+
+        if (string.IsNullOrEmpty(keyword))
+        {
+            Debug.LogWarning("PlaySound called with an empty or null keyword.");
+            return;
+        }
+
+        // Stop all currently playing sounds first
+        foreach (Sound soundToStop in sounds)
+        {
+            if (soundToStop != null && soundToStop.source != null && soundToStop.source.isPlaying)
+            {
+                soundToStop.source.Stop();
+            }
+        }
+
+        // Now, find and play sounds matching the keyword
+        foreach (Sound s in sounds)
+        {
+            // Check if the sound name contains the keyword (case-insensitive check might be better depending on use case)
+            // Example for case-insensitive: if (s != null && s.name != null && s.name.IndexOf(keyword, System.StringComparison.OrdinalIgnoreCase) >= 0)
+            if (s != null && s.name != null && s.name.Contains(keyword)) // Added null checks for safety
+            {
+                if (s.source != null)
+                {
+                    s.source.Play();
+                    soundPlayed = true; // Mark that at least one sound was played
+                }
+                else
+                {
+                    Debug.LogError($"Sound '{s.name}' (matches keyword '{keyword}') has no associated AudioSource component.");
+                }
+            }
+        }
+
+        // Log a warning if no sounds matched the keyword
+        if (!soundPlayed)
+        {
+            Debug.LogWarning($"PlaySound: No sounds found containing the keyword '{keyword}'.");
+        }
+    }
+
+
+    // Method to stop a sound by name
+    public void StopSound(string name)
     {
         Sound s = System.Array.Find(sounds, sound => sound.name == name);
         if (s == null)
@@ -43,15 +133,41 @@ public class AudioManager : MonoBehaviour
             Debug.LogWarning("Sound: " + name + " not found!");
             return;
         }
+         if (s.source != null)
+        {
+            s.source.Stop();
+        }
+    }
 
-        // Configure the main AudioSource (can be expanded for multiple sources)
-        audioSource.clip = s.clip;
-        audioSource.volume = s.volume;
-        audioSource.pitch = s.pitch;
-        audioSource.loop = s.loop;
+    /// <summary>
+    /// Gets the specific AudioSource associated with a sound definition.
+    /// Useful for scripts like AudioSpectrumBinder that need direct access.
+    /// Finds the *first* sound whose name contains the given keyword.
+    /// </summary>
+    /// <param name="keyword">The keyword to search for within sound names.</param>
+    /// <returns>The associated AudioSource of the first matching sound, or null if none found.</returns>
+    public AudioSource GetAudioSourceForSound(string keyword) // Parameter name changed
+    {
+        if (string.IsNullOrEmpty(keyword))
+        {
+            Debug.LogWarning("GetAudioSourceForSound called with an empty or null keyword.");
+            return null;
+        }
 
-        audioSource.Play(); // Use Play for one-shot sounds usually
-        // Use PlayOneShot for overlapping sounds: audioSource.PlayOneShot(s.clip, s.volume);
+        foreach (Sound s in sounds)
+        {
+            // Check if the sound name contains the keyword
+            // Example for case-insensitive: if (s != null && s.name != null && s.name.IndexOf(keyword, System.StringComparison.OrdinalIgnoreCase) >= 0)
+            if (s != null && s.name != null && s.name.Contains(keyword)) // Added null checks
+            {
+                // Return the source of the first match found
+                return s.source;
+            }
+        }
+
+        // If no sound containing the keyword was found after checking all sounds
+        Debug.LogWarning($"GetAudioSourceForSound: No sound found containing the keyword '{keyword}'.");
+        return null;
     }
 
     /// <summary>
@@ -115,7 +231,7 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    // Optional: Add methods for music, stopping sounds, etc.
+    // Optional: Add methods for music, stopping sounds, etc. (e.g., StopAllMusicTracks)
 }
 
 // Structure for managing sounds
@@ -131,7 +247,10 @@ public class Sound
     public float pitch = 1f;
     public bool loop = false;
 
-    // Hide the source field in the inspector as we manage it internally
-    // [HideInInspector]
-    // public AudioSource source; // Could be used if you want separate sources per sound type
+    // Optional: Assign to a specific mixer group
+    // public string outputMixerGroup;
+
+    // Runtime-assigned source component
+    [HideInInspector]
+    public AudioSource source;
 }

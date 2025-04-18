@@ -151,8 +151,28 @@ MonoBehaviour:
     volume: 1
     pitch: 1
     loop: 1
-  - name: Scene1
-    clip: {fileID: 8300000, guid: b6628472e1bacee4bbece5bde0081e0b, type: 3}
+    source: {fileID: 0}
+  - name: Scene1_Bass
+    clip: {fileID: 8300000, guid: ca1d44cc4b2757e45b6e96f4ade3bf41, type: 3}
     volume: 1
     pitch: 1
     loop: 1
+    source: {fileID: 0}
+  - name: Scene1_Drums
+    clip: {fileID: 8300000, guid: 5765d92c211e0ba4f86139f684e5ecca, type: 3}
+    volume: 1
+    pitch: 1
+    loop: 1
+    source: {fileID: 0}
+  - name: Scene1_Other
+    clip: {fileID: 8300000, guid: 5987b3d49d58e024b859019759ec938e, type: 3}
+    volume: 1
+    pitch: 1
+    loop: 1
+    source: {fileID: 0}
+  - name: Scene1_Vocals
+    clip: {fileID: 8300000, guid: 1e25ad9371b76574c9b96a8e0c948ff6, type: 3}
+    volume: 1
+    pitch: 1
+    loop: 1
+    source: {fileID: 0}

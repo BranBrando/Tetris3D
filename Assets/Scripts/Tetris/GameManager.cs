@@ -16,6 +16,7 @@ namespace TetrisGame
         private PieceSpawner pieceSpawner;
         private InputController inputController; // Reference to InputController
         private GridVisualizer gridVisualizer; // Reference to GridVisualizer
+        private AudioManager audioManager; // Reference to AudioManager
         // Removed: private Tetromino activeTetromino;
         private float currentGridRotationY = 0f; // Current visual rotation state of the grid
         private float targetGridRotationY = 0f; // Target rotation state
@@ -44,6 +45,27 @@ namespace TetrisGame
 
         private void Start()
         {
+            // Ensure AudioManager exists
+            audioManager = AudioManager.Instance;
+            if (audioManager == null)
+            {
+                audioManager = FindFirstObjectByType<AudioManager>();
+                if (audioManager == null)
+                {
+                    GameObject audioManagerGO = new GameObject("AudioManager");
+                    audioManager = audioManagerGO.AddComponent<AudioManager>();
+                    Debug.Log("AudioManager instance created by GameManager.");
+                }
+                else
+                {
+                    Debug.Log("AudioManager instance found in scene by GameManager.");
+                }
+            }
+            else
+            {
+                 Debug.Log("AudioManager singleton instance found by GameManager.");
+            }
+
             // Find necessary components in the scene
             inputController = FindFirstObjectByType<InputController>();
             gridVisualizer = FindFirstObjectByType<GridVisualizer>(); // Assumes GridVisualizer exists in the scene
@@ -251,7 +273,7 @@ namespace TetrisGame
                 {
                     if (gridSystem.IsPositionOccupied(new Vector3Int(x, gridHeight - 1, z)))
                     {
-                        Debug.LogWarning("Game over");
+                        Debug.Log("Game over");
                         return true; // Game over if top row is occupied
                     }
                 }

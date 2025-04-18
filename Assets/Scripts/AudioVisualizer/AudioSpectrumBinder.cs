@@ -41,10 +41,8 @@ public class AudioSpectrumBinder : MonoBehaviour
 
     // Private variables for spectrum/bass
     private AudioSource audioSource;
-    private float[] spectrumData;
-    private int min808BinIndex; // Calculated index for min frequency
-    private int max808BinIndex; // Calculated index for max frequency
-    // Removed texture variables
+    private AudioSpectrumProcessor spectrumProcessor; // New processor instance
+    // Removed spectrumData, min/max bin indices
 
     // Private variables for color change
     private float timeSinceLastColorChange = 0f;
@@ -59,20 +57,28 @@ public class AudioSpectrumBinder : MonoBehaviour
 
     void Start()
     {
-        // Get AudioSource from AudioManager singleton
-        if (AudioManager.Instance != null && AudioManager.Instance.SourceComponent != null)
+        // Get Bass AudioSource from AudioManager using the new method
+        if (AudioManager.Instance != null)
         {
-            audioSource = AudioManager.Instance.SourceComponent;
+            // Assuming the bass track is defined with the name "Bass" in AudioManager's sounds array
+            audioSource = AudioManager.Instance.GetAudioSourceForSound("Drums");
+
+            if (audioSource == null)
+            {
+                 Debug.LogError("AudioSpectrumBinder could not find an AudioSource named 'Drums' in AudioManager! Disabling binder.", this);
+                 this.enabled = false;
+                 return;
+            }
         }
         else
         {
-            Debug.LogError("AudioSpectrumBinder could not find AudioManager instance or its AudioSource component! Disabling binder.", this);
-            this.enabled = false; // Disable the script if we can't find the source
-            return; // Stop further execution in Start if source is missing
+            Debug.LogError("AudioSpectrumBinder could not find AudioManager instance! Disabling binder.", this);
+            this.enabled = false; // Disable the script if we can't find the AudioManager
+            return; // Stop further execution in Start if AudioManager is missing
         }
 
         // Existing assertions (audioSource should now be assigned if we reached here)
-        Assert.IsNotNull(audioSource, "AudioSource component could not be retrieved from AudioManager!");
+        Assert.IsNotNull(audioSource, "Drums AudioSource component could not be retrieved from AudioManager!"); // Updated assertion message
         Assert.IsNotNull(targetVisualEffect, "Target Visual Effect component is not assigned!");
         Assert.IsTrue(Mathf.IsPowerOfTwo(spectrumSize), "Spectrum Size must be a power of two!");
         Assert.IsTrue(min808Frequency >= 0 && max808Frequency > min808Frequency, "808 Frequency range must be valid (Min >= 0, Max > Min).");
@@ -113,18 +119,27 @@ public class AudioSpectrumBinder : MonoBehaviour
         amplitudeScaleGraphPropertyID = Shader.PropertyToID(amplitudeScaleGraphProperty);
         bassAmplitudePropertyID = Shader.PropertyToID(bassAmplitudeProperty);
 
-        // Calculate frequency bin indices
-        CalculateFrequencyBinIndices();
+        // --- Initialize the Spectrum Processor ---
+        spectrumProcessor = AudioSpectrumProcessor.Instance;
+        spectrumProcessor.Initialize(audioSource, spectrumSize, fftWindow, min808Frequency, max808Frequency, threshold);
 
-        // Initialize spectrum data array (texture stuff removed)
-        spectrumData = new float[spectrumSize];
+        // Check if processor initialized correctly
+        if (!spectrumProcessor.IsInitialized)
+        {
+            Debug.LogError("AudioSpectrumProcessor failed to initialize. Disabling AudioSpectrumBinder.", this);
+            this.enabled = false;
+            return;
+        }
+        // -----------------------------------------
 
         // Initialize color change logic
         InitializeColorChange();
 
         // Set initial bass value (optional, defaults to 0)
+        // Set initial bass value (optional, defaults to 0 via processor)
         targetVisualEffect.SetFloat(bassAmplitudePropertyID, 0f);
     }
+
 
     void InitializeColorChange()
     {
@@ -138,62 +153,21 @@ public class AudioSpectrumBinder : MonoBehaviour
         targetVisualEffect.SetVector4(targetColorPropertyID, currentTargetColor);
     }
 
-    void CalculateFrequencyBinIndices()
-    {
-        float nyquistFrequency = AudioSettings.outputSampleRate / 2.0f;
-        float frequencyResolution = nyquistFrequency / spectrumSize;
-
-        min808BinIndex = Mathf.Clamp(Mathf.FloorToInt(min808Frequency / frequencyResolution), 0, spectrumSize - 1);
-        max808BinIndex = Mathf.Clamp(Mathf.CeilToInt(max808Frequency / frequencyResolution), min808BinIndex, spectrumSize - 1); // Ensure max >= min
-
-        if (min808Frequency / frequencyResolution > spectrumSize -1) {
-             Debug.LogWarning($"Min 808 Frequency ({min808Frequency} Hz) is too high for the current spectrum size ({spectrumSize}) and sample rate ({AudioSettings.outputSampleRate} Hz). Clamping to max bin.");
-        }
-         if (max808Frequency / frequencyResolution > spectrumSize -1) {
-             Debug.LogWarning($"Max 808 Frequency ({max808Frequency} Hz) is too high for the current spectrum size ({spectrumSize}) and sample rate ({AudioSettings.outputSampleRate} Hz). Clamping to max bin.");
-        }
-    }
+    // Removed CalculateFrequencyBinIndices method
 
 
     void Update()
     {
-        if (targetVisualEffect == null || !this.enabled) return;
+        // Added check for spectrumProcessor initialization
+        if (targetVisualEffect == null || !this.enabled || spectrumProcessor == null || !spectrumProcessor.IsInitialized) return;
 
-        // Get the spectrum data from the AudioSource
-        // Channel 0 = Left, Channel 1 = Right. Using 0 for simplicity.
-        audioSource.GetSpectrumData(spectrumData, 0, fftWindow);
+        // --- Use Spectrum Processor ---
+        spectrumProcessor.UpdateSpectrum();
+        float final808Value = spectrumProcessor.GetAverageAmplitudeInRange(amplitudeScale);
+        targetVisualEffect.SetFloat(bassAmplitudePropertyID, final808Value);
+        // -----------------------------
 
-        // Calculate average amplitude within the 808 frequency range
-        float rangeSum = 0f;
-        int numberOfBinsInRange = max808BinIndex - min808BinIndex + 1;
-
-        if (numberOfBinsInRange > 0)
-        {
-            for (int i = min808BinIndex; i <= max808BinIndex; i++)
-            {
-                // Basic check to prevent index out of bounds, though Clamp in Start should handle it
-                if (i >= 0 && i < spectrumData.Length)
-                {
-                    rangeSum += spectrumData[i];
-                }
-            }
-            float averageInRange = rangeSum / numberOfBinsInRange;
-
-            // Apply the overall scaling from the Inspector
-            float final808Value = averageInRange * amplitudeScale;
-            final808Value = final808Value > threshold ? final808Value : 0; 
-
-            // Send the single 808 value to the graph
-            targetVisualEffect.SetFloat(bassAmplitudePropertyID, final808Value);
-        }
-        else
-        {
-             // Send 0 if the range is invalid or zero width
-             targetVisualEffect.SetFloat(bassAmplitudePropertyID, 0f);
-        }
-
-
-        // Update color change logic
+        // Update color change logic (remains the same)
         UpdateColorChange();
 
         // Send script's amplitude scale to the graph property
@@ -217,9 +191,5 @@ public class AudioSpectrumBinder : MonoBehaviour
         }
     }
 
-
-    void OnDestroy()
-    {
-        // No texture to clean up anymore
-    }
+    // Removed empty OnDestroy method
 }
