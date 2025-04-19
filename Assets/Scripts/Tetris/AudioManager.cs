@@ -15,6 +15,16 @@ public class AudioManager : MonoBehaviour
     public AudioMixer mainMixer; // Assign your main AudioMixer asset here
     public string masterVolumeParameter = "MasterVolume"; // Name of the exposed volume parameter in the mixer
 
+    [Header("Spectrum Analysis Settings")]
+    public int spectrumSize = 128; // Size of the spectrum data (must be a power of 2)
+    public FFTWindow spectrumWindow = FFTWindow.BlackmanHarris; // FFT window type
+    [Range(20, 20000)]
+    public float spectrumMinFrequency = 20; // Minimum frequency for analysis
+    [Range(20, 20000)]
+    public float spectrumMaxFrequency = 20000; // Maximum frequency for analysis
+    [Range(0.0001f, 1f)]
+    public float spectrumThreshold = 0.01f; // Amplitude threshold
+
     [Header("Sound Definitions")]
     public Sound[] sounds; // Array to hold sound definitions
 
@@ -74,6 +84,17 @@ public class AudioManager : MonoBehaviour
                     s.source = null;
                 }
             }
+        }
+
+        // Initialize AudioSpectrumProcessor
+        AudioSource spectrumSource = GetAudioSourceForSound(currentSceneName);
+        if (spectrumSource != null)
+        {
+            AudioSpectrumProcessor.Instance.Initialize(spectrumSource, spectrumSize, spectrumWindow, spectrumMinFrequency, spectrumMaxFrequency, spectrumThreshold);
+        }
+        else
+        {
+            Debug.LogWarning($"AudioManager: No AudioSource found with keyword '{currentSceneName}' for spectrum analysis.");
         }
     }
 
