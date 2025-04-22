@@ -105,11 +105,35 @@ public class AudioSpectrumProcessor
         }
         // Channel 0 = Left, Channel 1 = Right. Using 0 for simplicity.
         audioSource.GetSpectrumData(spectrumData, 0, fftWindow);
+        CalculateFrequencyBandsFromSpectrum();
+    }
+
+    private float[] calculatedFreqBands = new float[8];
+
+    private void CalculateFrequencyBandsFromSpectrum()
+    {
+        int count = 0;
+        for (int i = 0; i < 8; i++)
+        {
+            float average = 0;
+            int sampleCount = (int)Mathf.Pow(2, i) * 2;
+            if (i == 7)
+            {
+                sampleCount += 2;
+            }
+            for (int j = 0; j < sampleCount; j++)
+            {
+                average += spectrumData[count] * (count + 1);
+                count++;
+            }
+            average /= count;
+            calculatedFreqBands[i] = average * 10;
+        }
     }
 
     public float GetAverageAmplitudeInRange(float scale)
     {
-        if (!IsInitialized) return 0f;
+         if (!IsInitialized) return 0f;
 
         float rangeSum = 0f;
         int numberOfBinsInRange = maxBinIndex - minBinIndex + 1;
@@ -143,53 +167,22 @@ public class AudioSpectrumProcessor
     /// Calculates the average amplitude for a specific frequency band within the spectrum data.
     /// </summary>
     /// <param name="bandIndex">The index of the band (0-based).</param>
-    /// <param name="totalBands">The total number of bands to divide the spectrum into.</param>
     /// <param name="scale">A multiplier to apply to the calculated amplitude.</param>
     /// <returns>The scaled average amplitude for the specified band, or 0 if inputs are invalid.</returns>
-    public float GetAmplitudeForBand(int bandIndex, int totalBands, float scale)
+    public float GetAmplitudeForBand(int bandIndex, float scale)
     {
-        if (!IsInitialized || totalBands <= 0 || bandIndex < 0 || bandIndex >= totalBands)
+        if (!IsInitialized || bandIndex < 0 || bandIndex >= 8)
         {
-            // Debug.LogWarning($"GetAmplitudeForBand: Invalid input. Initialized: {IsInitialized}, TotalBands: {totalBands}, BandIndex: {bandIndex}");
             return 0f;
         }
 
-        // Determine the range of spectrum data indices for this band
-        int bandWidth = spectrumData.Length / totalBands;
-        int startBin = bandIndex * bandWidth;
-        // Ensure the last band covers remaining bins if spectrumSize is not perfectly divisible
-        int endBin = (bandIndex == totalBands - 1) ? spectrumData.Length - 1 : startBin + bandWidth - 1;
+        float bandValue = calculatedFreqBands[bandIndex];
 
-        // Clamp indices just in case
-        startBin = Mathf.Clamp(startBin, 0, spectrumData.Length - 1);
-        endBin = Mathf.Clamp(endBin, startBin, spectrumData.Length - 1);
+        // Apply the overall scaling passed from the caller
+        float finalValue = bandValue * scale;
 
-        float bandSum = 0f;
-        int binsInThisBand = endBin - startBin + 1;
-
-        if (binsInThisBand > 0)
-        {
-            for (int i = startBin; i <= endBin; i++)
-            {
-                 // Basic check to prevent index out of bounds (should be covered by clamp)
-                if (i >= 0 && i < spectrumData.Length)
-                {
-                    bandSum += spectrumData[i];
-                }
-            }
-            float averageInBand = bandSum / binsInThisBand;
-
-            // Apply the overall scaling passed from the caller
-            float finalValue = averageInBand * scale;
-
-            // Apply threshold (using the processor's threshold)
-            finalValue = finalValue > threshold ? finalValue : 0f;
-            return finalValue;
-        }
-        else
-        {
-            // Debug.LogWarning($"GetAmplitudeForBand: Zero bins calculated for band {bandIndex}. Start: {startBin}, End: {endBin}");
-            return 0f; // Return 0 if the band width is zero
-        }
+        // Apply threshold (using the processor's threshold)
+        finalValue = finalValue > threshold ? finalValue : 0f;
+        return finalValue;
     }
 }

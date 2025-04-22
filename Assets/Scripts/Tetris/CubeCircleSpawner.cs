@@ -44,7 +44,7 @@ public class CubeCircleSpawner : MonoBehaviour
             {
                 if (spawnedCubes[i] != null)
                 {
-                    float targetAmplitude = spectrumProcessor.GetAmplitudeForBand(i * totalBands / numberOfCubes, totalBands, amplitudeScale);
+                    float targetAmplitude = spectrumProcessor.GetAmplitudeForBand(i * totalBands / numberOfCubes, amplitudeScale);
 
                     // Apply buffer logic
                     if (targetAmplitude > amplitudeBuffer[i])
