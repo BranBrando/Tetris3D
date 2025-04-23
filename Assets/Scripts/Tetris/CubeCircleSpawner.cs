@@ -17,7 +17,10 @@ public class CubeCircleSpawner : MonoBehaviour
     public int channel = 2; // Audio channel to use for spectrum analysis
     public float amplitudeScale = 10.0f; // Scale for amplitude visualization
     public int totalBands = 8; // Total number of frequency bands to divide the spectrum into
+    public float colorCycleSpeed = 0.5f; // Speed of the color change
     private GameObject[] spawnedCubes; // Array to store spawned cubes
+    private Renderer[] cubeRenderers; // Array to store renderers of spawned cubes
+    private float[] cubeHues; // Array to store base hues for each cube
 
     private float[] amplitudeBuffer;
     private float[] bufferDecrease; // Array to store buffer decrease values for each cube
@@ -66,6 +69,13 @@ public class CubeCircleSpawner : MonoBehaviour
                     Vector3 newScale = spawnedCubes[i].transform.localScale;
                     newScale.y = scaleY;
                     spawnedCubes[i].transform.localScale = newScale;
+
+                    // Update the color
+                    if (cubeRenderers[i] != null)
+                    {
+                        float currentHue = Mathf.Repeat(cubeHues[i] + Time.time * colorCycleSpeed, 1f);
+                        cubeRenderers[i].material.color = Color.HSVToRGB(currentHue, 1f, 1f);
+                    }
                 }
             }
         }
@@ -80,6 +90,8 @@ public class CubeCircleSpawner : MonoBehaviour
         }
 
         spawnedCubes = new GameObject[numberOfCubes]; // Initialize the array with the number of cubes
+        cubeRenderers = new Renderer[numberOfCubes]; // Initialize the renderer array
+        cubeHues = new float[numberOfCubes]; // Initialize the hue array
 
         for (int i = 0; i < numberOfCubes; i++)
         {
@@ -122,6 +134,19 @@ public class CubeCircleSpawner : MonoBehaviour
 
             // Add the spawned cube to the array
             spawnedCubes[i] = spawnedCube;
+
+            // Get the renderer and set the initial color
+            Renderer cubeRenderer = spawnedCube.GetComponent<Renderer>();
+            if (cubeRenderer != null)
+            {
+                cubeRenderers[i] = cubeRenderer;
+                cubeHues[i] = (float)i / numberOfCubes; // Calculate hue based on position
+                cubeRenderer.material.color = Color.HSVToRGB(cubeHues[i], 1f, 1f); // Set initial color
+            }
+            else
+            {
+                Debug.LogError($"CubeCircleSpawner: No renderer found on cube {i}!", this);
+            }
         }
     }
 }
