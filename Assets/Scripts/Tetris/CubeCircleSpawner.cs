@@ -12,6 +12,9 @@ public class CubeCircleSpawner : MonoBehaviour
     [Tooltip("The Prefab to use for the cubes. If null, primitive cubes will be created.")]
     public GameObject cubePrefab;
 
+
+    [Tooltip("The channel to use for spectrum analysis. 0 = Left, 1 = Right, 2 = stereo.")]
+    public int channel = 2; // Audio channel to use for spectrum analysis
     public float amplitudeScale = 10.0f; // Scale for amplitude visualization
     public int totalBands = 8; // Total number of frequency bands to divide the spectrum into
     private GameObject[] spawnedCubes; // Array to store spawned cubes
@@ -44,7 +47,8 @@ public class CubeCircleSpawner : MonoBehaviour
             {
                 if (spawnedCubes[i] != null)
                 {
-                    float targetAmplitude = spectrumProcessor.GetAmplitudeForBand(i * totalBands / numberOfCubes, amplitudeScale);
+                    int bandIndex = i * totalBands / numberOfCubes;
+                    float targetAmplitude = spectrumProcessor.GetAmplitudeForBand(channel, bandIndex, amplitudeScale);
 
                     // Apply buffer logic
                     if (targetAmplitude > amplitudeBuffer[i])

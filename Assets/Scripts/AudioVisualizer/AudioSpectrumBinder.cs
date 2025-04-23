@@ -163,7 +163,8 @@ public class AudioSpectrumBinder : MonoBehaviour
 
         // --- Use Spectrum Processor ---
         spectrumProcessor.UpdateSpectrum();
-        float final808Value = spectrumProcessor.GetAverageAmplitudeInRange(amplitudeScale);
+        // Using channel 0 (left) for the average amplitude calculation
+        float final808Value = spectrumProcessor.GetAverageAmplitudeInRange(0, amplitudeScale);
         targetVisualEffect.SetFloat(bassAmplitudePropertyID, final808Value);
         // -----------------------------
 

@@ -25,9 +25,13 @@ public class AudioSpectrumProcessor
     private float maxFrequency;
     private float threshold;
 
-    private float[] spectrumData;
+    private float[] spectrumDataLeft;
+    private float[] spectrumDataRight;
     private int minBinIndex;
     private int maxBinIndex;
+
+    private float[] calculatedFreqBandsLeft = new float[8];
+    private float[] calculatedFreqBandsRight = new float[8];
 
     public bool IsInitialized { get; private set; } = false;
 
@@ -57,7 +61,8 @@ public class AudioSpectrumProcessor
         this.maxFrequency = maxFreq;
         this.threshold = thresh; // Store threshold
 
-        this.spectrumData = new float[spectrumSize];
+        this.spectrumDataLeft = new float[spectrumSize];
+        this.spectrumDataRight = new float[spectrumSize];
 
         CalculateFrequencyBinIndices();
         IsInitialized = true;
@@ -100,19 +105,27 @@ public class AudioSpectrumProcessor
         if (!IsInitialized || audioSource == null || !audioSource.isPlaying)
         {
             // Clear spectrum data if not playing or not initialized
-            System.Array.Clear(spectrumData, 0, spectrumData.Length);
+            System.Array.Clear(spectrumDataLeft, 0, spectrumDataLeft.Length);
+            System.Array.Clear(spectrumDataRight, 0, spectrumDataRight.Length);
             return;
         }
-        // Channel 0 = Left, Channel 1 = Right. Using 0 for simplicity.
-        audioSource.GetSpectrumData(spectrumData, 0, fftWindow);
+        // Channel 0 = Left, Channel 1 = Right
+        audioSource.GetSpectrumData(spectrumDataLeft, 0, fftWindow);
+        audioSource.GetSpectrumData(spectrumDataRight, 1, fftWindow);
         CalculateFrequencyBandsFromSpectrum();
     }
 
-    private float[] calculatedFreqBands = new float[8];
-
     private void CalculateFrequencyBandsFromSpectrum()
     {
+        CalculateFrequencyBandsForChannel(spectrumDataLeft, calculatedFreqBandsLeft);
+        CalculateFrequencyBandsForChannel(spectrumDataRight, calculatedFreqBandsRight);
+    }
+
+    private void CalculateFrequencyBandsForChannel(float[] spectrumData, float[] calculatedFreqBands)
+    {
         int count = 0;
+
+        // spectrum size is 512, so we can calculate 8 bands
         for (int i = 0; i < 8; i++)
         {
             float average = 0;
@@ -123,17 +136,48 @@ public class AudioSpectrumProcessor
             }
             for (int j = 0; j < sampleCount; j++)
             {
-                average += spectrumData[count] * (count + 1);
-                count++;
+                // Ensure count does not exceed spectrumData length
+                if (count < spectrumData.Length)
+                {
+                    average += spectrumData[count] * (count + 1);
+                    count++;
+                }
+                else
+                {
+                    // Handle case where count exceeds spectrumData length, e.g., break or log warning
+                    // For now, just break to prevent IndexOutOfRangeException
+                    break;
+                }
             }
-            average /= count;
+             // Check if count is zero to avoid division by zero
+            if (count > 0)
+            {
+                average /= count;
+            }
+            else
+            {
+                average = 0; // Or handle as appropriate
+            }
             calculatedFreqBands[i] = average * 10;
         }
     }
 
-    public float GetAverageAmplitudeInRange(float scale)
+    /// <summary>
+    /// Calculates the average amplitude across a specified frequency range for a given channel.
+    /// </summary>
+    /// <param name="channel">The audio channel (0 for left, 1 for right).</param>
+    /// <param name="scale">A multiplier to apply to the calculated amplitude.</param>
+    /// <returns>The scaled average amplitude for the specified range and channel.</returns>
+    public float GetAverageAmplitudeInRange(int channel, float scale)
     {
-         if (!IsInitialized) return 0f;
+        if (!IsInitialized) return 0f;
+        if (channel < 0 || channel > 1)
+        {
+            Debug.LogWarning("GetAverageAmplitudeInRange: Channel must be 0 (left) or 1 (right).");
+            return 0f;
+        }
+
+        float[] targetSpectrumData = (channel == 0) ? spectrumDataLeft : spectrumDataRight;
 
         float rangeSum = 0f;
         int numberOfBinsInRange = maxBinIndex - minBinIndex + 1;
@@ -143,9 +187,9 @@ public class AudioSpectrumProcessor
             for (int i = minBinIndex; i <= maxBinIndex; i++)
             {
                 // Basic check to prevent index out of bounds
-                if (i >= 0 && i < spectrumData.Length)
+                if (i >= 0 && i < targetSpectrumData.Length)
                 {
-                    rangeSum += spectrumData[i];
+                    rangeSum += targetSpectrumData[i];
                 }
             }
             float averageInRange = rangeSum / numberOfBinsInRange;
@@ -164,24 +208,40 @@ public class AudioSpectrumProcessor
     }
 
     /// <summary>
-    /// Calculates the average amplitude for a specific frequency band within the spectrum data.
+    /// Gets the pre-calculated amplitude for a specific frequency band for a given channel.
     /// </summary>
-    /// <param name="bandIndex">The index of the band (0-based).</param>
+    /// <param name="channel">The audio channel (0 for left, 1 for right).</param>
+    /// <param name="bandIndex">The index of the band (0-7).</param>
     /// <param name="scale">A multiplier to apply to the calculated amplitude.</param>
-    /// <returns>The scaled average amplitude for the specified band, or 0 if inputs are invalid.</returns>
-    public float GetAmplitudeForBand(int bandIndex, float scale)
+    /// <returns>The scaled amplitude for the specified band and channel.</returns>
+    public float GetAmplitudeForBand(int channel, int bandIndex, float scale)
     {
-        if (!IsInitialized || bandIndex < 0 || bandIndex >= 8)
+        if (!IsInitialized) return 0f;
+        if (bandIndex < 0 || bandIndex >= 8)
         {
+             Debug.LogWarning($"GetAmplitudeForBand: Band index must be between 0 and 7. Received: {bandIndex}");
             return 0f;
         }
 
-        float bandValue = calculatedFreqBands[bandIndex];
+        float bandValue;
+        // Select the appropriate band value based on the channel, left, right, or stereo
+        if (channel == 0)
+        {
+            bandValue = calculatedFreqBandsLeft[bandIndex];
+        }
+        else if (channel == 1)
+        {
+            bandValue = calculatedFreqBandsRight[bandIndex];
+        }
+        else
+        {
+            bandValue = calculatedFreqBandsLeft[bandIndex] + calculatedFreqBandsRight[bandIndex];
+        }
 
         // Apply the overall scaling passed from the caller
         float finalValue = bandValue * scale;
 
-        // Apply threshold (using the processor's threshold)
+        // Apply threshold
         finalValue = finalValue > threshold ? finalValue : 0f;
         return finalValue;
     }
