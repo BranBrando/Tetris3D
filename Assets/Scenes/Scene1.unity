@@ -2640,6 +2640,58 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1564586187}
   m_CullTransparentMesh: 1
+--- !u!1 &1575697870
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1575697872}
+  - component: {fileID: 1575697871}
+  m_Layer: 0
+  m_Name: ChartSpawner (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1575697871
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1575697870}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 812c4c3f34321c7488c81a85d9ab0a77, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cubePrefab: {fileID: 818104459338709087, guid: 0ce5eea15f5197842966b11552b4b59a,
+    type: 3}
+  numberOfCubes: 8
+  cubeSpacing: 1.5
+  heightScale: 5
+  lerpSpeed: 5
+  audioChannel: 2
+  minHeight: 0.1
+--- !u!4 &1575697872
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1575697870}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 15, y: 0, z: -5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!1 &1587517582
 GameObject:
   m_ObjectHideFlags: 0
@@ -3756,7 +3808,7 @@ GameObject:
   - component: {fileID: 1973845127}
   - component: {fileID: 1973845126}
   m_Layer: 0
-  m_Name: CubeSpawner
+  m_Name: CubeCircleSpawner
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3778,6 +3830,7 @@ MonoBehaviour:
   radius: 5
   cubePrefab: {fileID: 818104459338709087, guid: 0ce5eea15f5197842966b11552b4b59a,
     type: 3}
+  channel: 2
   amplitudeScale: 2
   totalBands: 8
 --- !u!4 &1973845127
@@ -3870,6 +3923,58 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2035369046}
   m_CullTransparentMesh: 1
+--- !u!1 &2111912781
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2111912783}
+  - component: {fileID: 2111912782}
+  m_Layer: 0
+  m_Name: ChartSpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2111912782
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2111912781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 812c4c3f34321c7488c81a85d9ab0a77, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cubePrefab: {fileID: 818104459338709087, guid: 0ce5eea15f5197842966b11552b4b59a,
+    type: 3}
+  numberOfCubes: 8
+  cubeSpacing: 1.5
+  heightScale: 5
+  lerpSpeed: 5
+  audioChannel: 2
+  minHeight: 0.1
+--- !u!4 &2111912783
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2111912781}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 10}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -3883,3 +3988,5 @@ SceneRoots:
   - {fileID: 712522200}
   - {fileID: 1693916151}
   - {fileID: 1973845127}
+  - {fileID: 2111912783}
+  - {fileID: 1575697872}
