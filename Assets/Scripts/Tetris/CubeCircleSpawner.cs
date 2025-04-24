@@ -18,25 +18,14 @@ public class CubeCircleSpawner : MonoBehaviour
     public float amplitudeScale = 10.0f; // Scale for amplitude visualization
     public int totalBands = 8; // Total number of frequency bands to divide the spectrum into
     public float colorCycleSpeed = 0.5f; // Speed of the color change
+    public float lerpSpeed = 5f; // Speed of the lerp for scaling
     private GameObject[] spawnedCubes; // Array to store spawned cubes
     private Renderer[] cubeRenderers; // Array to store renderers of spawned cubes
     private float[] cubeHues; // Array to store base hues for each cube
 
-    private float[] amplitudeBuffer;
-    private float[] bufferDecrease; // Array to store buffer decrease values for each cube
-
     void Start()
     {
         SpawnCubes();
-
-        // Initialize the amplitude buffer and buffer decrease array
-        amplitudeBuffer = new float[spawnedCubes.Length];
-        bufferDecrease = new float[spawnedCubes.Length];
-        for (int i = 0; i < amplitudeBuffer.Length; i++)
-        {
-            amplitudeBuffer[i] = 0f;
-            bufferDecrease[i] = 0.005f; // Default decrease value for each cube
-        }
     }
 
     void Update()
@@ -51,25 +40,14 @@ public class CubeCircleSpawner : MonoBehaviour
                 if (spawnedCubes[i] != null)
                 {
                     int bandIndex = i * totalBands / numberOfCubes;
-                    float targetAmplitude = spectrumProcessor.GetAmplitudeForBand(channel, bandIndex, amplitudeScale);
+                    float amplitude = spectrumProcessor.GetAmplitudeForBand(channel, bandIndex, amplitudeScale);
 
-                    // Apply buffer logic
-                    if (targetAmplitude > amplitudeBuffer[i])
-                    {
-                        amplitudeBuffer[i] = targetAmplitude;
-                        bufferDecrease[i] = 0.005f; // Reset decrease value when amplitude increases
-                    }
-                    else
-                    {
-                        amplitudeBuffer[i] -= bufferDecrease[i];
-                        bufferDecrease[i] *= 1.2f; // Increase the decrease rate
-                    }
-
-                    float scaleY = Mathf.Clamp(amplitudeBuffer[i], 0.1f, 10f);
+                    float scaleY = Mathf.Clamp(amplitude, 0.1f, 10f);
+                    Vector3 currentScale = spawnedCubes[i].transform.localScale;
                     Vector3 newScale = spawnedCubes[i].transform.localScale;
                     newScale.y = scaleY;
-                    spawnedCubes[i].transform.localScale = newScale;
-
+                    spawnedCubes[i].transform.localScale = Vector3.Lerp(currentScale, newScale, Time.deltaTime * lerpSpeed);
+                    
                     // Update the color
                     if (cubeRenderers[i] != null)
                     {

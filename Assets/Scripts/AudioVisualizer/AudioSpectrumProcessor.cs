@@ -66,7 +66,8 @@ public class AudioSpectrumProcessor
 
         CalculateFrequencyBinIndices();
         IsInitialized = true;
-         Debug.Log($"AudioSpectrumProcessor Initialized. Freq Range: {minFrequency}-{maxFrequency} Hz -> Bins: {minBinIndex}-{maxBinIndex}");
+
+        Debug.Log($"AudioSpectrumProcessor Initialized. Freq Range: {minFrequency}-{maxFrequency} Hz -> Bins: {minBinIndex}-{maxBinIndex}");
     }
 
     private void CalculateFrequencyBinIndices()
@@ -171,14 +172,23 @@ public class AudioSpectrumProcessor
     public float GetAverageAmplitudeInRange(int channel, float scale)
     {
         if (!IsInitialized) return 0f;
-        if (channel < 0 || channel > 1)
-        {
-            Debug.LogWarning("GetAverageAmplitudeInRange: Channel must be 0 (left) or 1 (right).");
-            return 0f;
-        }
 
         float[] targetSpectrumData = (channel == 0) ? spectrumDataLeft : spectrumDataRight;
-
+        if (channel == 0){
+            targetSpectrumData = spectrumDataLeft;
+        }
+        else if (channel == 1)
+        {
+            targetSpectrumData = spectrumDataRight;
+        }
+        else
+        {
+            targetSpectrumData = new float[spectrumDataLeft.Length];
+            for (int i = 0; i < spectrumDataLeft.Length; i++)
+            {
+                targetSpectrumData[i] = spectrumDataLeft[i] + spectrumDataRight[i];
+            }
+        }
         float rangeSum = 0f;
         int numberOfBinsInRange = maxBinIndex - minBinIndex + 1;
 
@@ -212,6 +222,11 @@ public class AudioSpectrumProcessor
     /// </summary>
     /// <param name="channel">The audio channel (0 for left, 1 for right).</param>
     /// <param name="bandIndex">The index of the band (0-7).</param>
+    /// <summary>
+    /// Gets the pre-calculated amplitude for a specific frequency band for a given channel.
+    /// </summary>
+    /// <param name="channel">The audio channel (0 for left, 1 for right).</param>
+    /// <param name="bandIndex">The index of the band (0-7).</param>
     /// <param name="scale">A multiplier to apply to the calculated amplitude.</param>
     /// <returns>The scaled amplitude for the specified band and channel.</returns>
     public float GetAmplitudeForBand(int channel, int bandIndex, float scale)
@@ -219,7 +234,7 @@ public class AudioSpectrumProcessor
         if (!IsInitialized) return 0f;
         if (bandIndex < 0 || bandIndex >= 8)
         {
-             Debug.LogWarning($"GetAmplitudeForBand: Band index must be between 0 and 7. Received: {bandIndex}");
+            Debug.LogWarning($"GetAmplitudeForBand: Band index must be between 0 and 7. Received: {bandIndex}");
             return 0f;
         }
 
