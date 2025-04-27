@@ -33,6 +33,9 @@ public class AudioSpectrumProcessor
     private float[] calculatedFreqBandsLeft = new float[8];
     private float[] calculatedFreqBandsRight = new float[8];
 
+    private float[] calculatedFreqBands64Left = new float[64];
+    private float[] calculatedFreqBands64Right = new float[64];
+
     public bool IsInitialized { get; private set; } = false;
 
     public void Initialize(AudioSource source, int size, FFTWindow window, float minFreq, float maxFreq, float thresh)
@@ -120,6 +123,8 @@ public class AudioSpectrumProcessor
     {
         CalculateFrequencyBandsForChannel(spectrumDataLeft, calculatedFreqBandsLeft);
         CalculateFrequencyBandsForChannel(spectrumDataRight, calculatedFreqBandsRight);
+        CalculateFrequencyBands64ForChannel(spectrumDataLeft, calculatedFreqBands64Left);
+        CalculateFrequencyBands64ForChannel(spectrumDataRight, calculatedFreqBands64Right);
     }
 
     private void CalculateFrequencyBandsForChannel(float[] spectrumData, float[] calculatedFreqBands)
@@ -160,6 +165,44 @@ public class AudioSpectrumProcessor
                 average = 0; // Or handle as appropriate
             }
             calculatedFreqBands[i] = average * 10;
+        }
+    }
+
+    private void CalculateFrequencyBands64ForChannel(float[] spectrumData, float[] calculatedFreqBands64)
+    {
+        int count = 0;
+        int sampleCount = 1;
+        int power = 0;
+
+        for (int i = 0; i < 64; i++)
+        {
+            float average = 0;
+
+            if (i == 16 || i == 32 || i == 40 || i == 48 || i == 56)
+            {
+                power++;
+                sampleCount = (int)Mathf.Pow(2, power);
+                if (power == 3)
+                {
+                    sampleCount -= 2;
+                }
+            }
+
+            for (int j = 0; j < sampleCount; j++)
+            {
+                if (count < spectrumData.Length)
+                {
+                    average += spectrumData[count] * (count + 1);
+                    count++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            average /= count;
+            calculatedFreqBands64[i] = average * 80;
         }
     }
 
@@ -251,6 +294,45 @@ public class AudioSpectrumProcessor
         else
         {
             bandValue = calculatedFreqBandsLeft[bandIndex] + calculatedFreqBandsRight[bandIndex];
+        }
+
+        // Apply the overall scaling passed from the caller
+        float finalValue = bandValue * scale;
+
+        // Apply threshold
+        finalValue = finalValue > threshold ? finalValue : 0f;
+        return finalValue;
+    }
+
+    /// <summary>
+    /// Gets the pre-calculated amplitude for a specific 64 frequency band for a given channel.
+    /// </summary>
+    /// <param name="channel">The audio channel (0 for left, 1 for right).</param>
+    /// <param name="bandIndex">The index of the band (0-63).</param>
+    /// <param name="scale">A multiplier to apply to the calculated amplitude.</param>
+    /// <returns>The scaled amplitude for the specified band and channel.</returns>
+    public float GetAmplitudeForBand64(int channel, int bandIndex, float scale)
+    {
+        if (!IsInitialized) return 0f;
+        if (bandIndex < 0 || bandIndex >= 64)
+        {
+            Debug.LogWarning($"GetAmplitudeForBand64: Band index must be between 0 and 63. Received: {bandIndex}");
+            return 0f;
+        }
+
+        float bandValue;
+        // Select the appropriate band value based on the channel, left, right, or stereo
+        if (channel == 0)
+        {
+            bandValue = calculatedFreqBands64Left[bandIndex];
+        }
+        else if (channel == 1)
+        {
+            bandValue = calculatedFreqBands64Right[bandIndex];
+        }
+        else
+        {
+            bandValue = calculatedFreqBands64Left[bandIndex] + calculatedFreqBands64Right[bandIndex];
         }
 
         // Apply the overall scaling passed from the caller

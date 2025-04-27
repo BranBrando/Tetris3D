@@ -40,7 +40,7 @@ public class TangentCircles : CircleTangent
             _tangentObject[i].transform.parent = this.transform;
             _material[i] = new Material(_materialBase);
             _material[i].EnableKeyword("_EMISSION");
-            _material[i].SetColor("_Color", new Color(0, 0, 0));
+            _material[i].SetColor("_BaseColor", new Color(0, 0, 0));
             _tangentObject[i].GetComponent<MeshRenderer>().material = _material[i];
         }
     }
@@ -63,16 +63,17 @@ public class TangentCircles : CircleTangent
 
         for (int i = 0; i < _circleAmount; i++)
         {
-            int bandIndex = i * 8 / _circleAmount;
+            // int bandIndex = i * 8 / _circleAmount;
             _tangentCircle[i] = FindTangentCircle(_outterCircle, _innerCircle, 360f / _circleAmount * i + _rotateTangentObjects);
             Vector3 relativePosition = new Vector3(_tangentCircle[i].x, _tangentCircle[i].y, _tangentCircle[i].z);
             _tangentObject[i].transform.position = transform.position + relativePosition;
             _tangentObject[i].transform.localScale = new Vector3(_tangentCircle[i].w, _tangentCircle[i].w, _tangentCircle[i].w) * 2;
-
-            var amplitude = AudioSpectrumProcessor.Instance.GetAmplitudeForBand(2, bandIndex, _emissionMultiplier);
-            if (amplitude > _thresholdEmission)
+            
+            // var amplitude = AudioSpectrumProcessor.Instance.GetAmplitudeForBand(2, bandIndex, _emissionMultiplier);
+            var amplitude64 = AudioSpectrumProcessor.Instance.GetAmplitudeForBand64(2, i, _emissionMultiplier);
+            if (amplitude64 > _thresholdEmission)
             {
-                _material[i].SetColor("_EmissionColor", _gradient.Evaluate(1f / _circleAmount * i) * amplitude);
+                _material[i].SetColor("_EmissionColor", _gradient.Evaluate(1f / _circleAmount * i) * amplitude64);
             }
             else
             {
