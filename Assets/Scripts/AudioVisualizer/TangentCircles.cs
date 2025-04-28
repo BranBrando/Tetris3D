@@ -23,6 +23,11 @@ public class TangentCircles : CircleTangent
     private float _rotateTangentObjects;
     public float _rotateSpeed;
     public bool _rotateBuffer;
+    public bool _scaleYOnAudio;
+    [Range(0,1)]
+    public float _scaleThreshold;
+    public float _scaleStart;
+    public Vector2 _scaleMinMax;
 
     [Header("Emission")]
     public float emissionLerpSpeed = 5f; // Adjust this value to control the lerp speed
@@ -73,9 +78,27 @@ public class TangentCircles : CircleTangent
             Vector3 relativePosition = new Vector3(_tangentCircle[i].x, _tangentCircle[i].y, _tangentCircle[i].z);
             _tangentObject[i].transform.position = transform.position + relativePosition;
             _tangentObject[i].transform.localScale = new Vector3(_tangentCircle[i].w, _tangentCircle[i].w, _tangentCircle[i].w) * 2;
-            
+
             // var amplitude = AudioSpectrumProcessor.Instance.GetAmplitudeForBand(2, bandIndex, _emissionMultiplier);
             var amplitude64 = AudioSpectrumProcessor.Instance.GetAmplitudeForBand64(2, i, _emissionMultiplier);
+            
+            if (_scaleYOnAudio)
+            {
+                if (amplitude64 > _scaleThreshold)
+                {
+                    _tangentObject[i].transform.localScale = new Vector3(_tangentCircle[i].w, _scaleStart + Mathf.Lerp(_scaleMinMax.x, _scaleMinMax.y, amplitude64), _tangentCircle[i].w);
+                    
+                }
+                else
+                {
+                    _tangentObject[i].transform.localScale = new Vector3(_tangentCircle[i].w, _scaleStart, _tangentCircle[i].w) * 2;
+                }
+            }
+            else
+            {
+                _tangentObject[i].transform.localScale = new Vector3(_tangentCircle[i].w, _tangentCircle[i].w, _tangentCircle[i].w) * 2;
+            }
+            
             Color calculatedEmissionColor;
             if (amplitude64 > _thresholdEmission)
             {

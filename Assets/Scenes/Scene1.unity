@@ -4763,6 +4763,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8478376537885474724, guid: 0148126e5943d6041a38f02b0b15e3cd,
         type: 3}
+      propertyPath: _scaleYOnAudio
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8478376537885474724, guid: 0148126e5943d6041a38f02b0b15e3cd,
+        type: 3}
       propertyPath: _gradient.ctime0
       value: 3359
       objectReference: {fileID: 0}
