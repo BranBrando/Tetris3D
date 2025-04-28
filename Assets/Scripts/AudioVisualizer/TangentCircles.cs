@@ -16,13 +16,10 @@ public class TangentCircles : CircleTangent
     public Material _materialBase;
     private Material[] _material;
     public Gradient _gradient;
-    public float _emissionMultiplier;
-    public bool _emissionBuffer;
-    [Range(0, 1)]
-    public float _thresholdEmission;
     private float _rotateTangentObjects;
     public float _rotateSpeed;
-    public bool _rotateBuffer;
+
+    [Header("Scale")]
     public bool _scaleYOnAudio;
     [Range(0,1)]
     public float _scaleThreshold;
@@ -30,6 +27,9 @@ public class TangentCircles : CircleTangent
     public Vector2 _scaleMinMax;
 
     [Header("Emission")]
+    public float _emissionMultiplier;
+    [Range(0, 1)]
+    public float _thresholdEmission;
     public float emissionLerpSpeed = 5f; // Adjust this value to control the lerp speed
     private Color[] _targetEmissionColor;
 
@@ -61,11 +61,13 @@ public class TangentCircles : CircleTangent
         _innerCircle.x = transform.position.x;
         _innerCircle.y = transform.position.y;
         _innerCircle.z = transform.position.z;
+        _innerCircle.w = _innerCircleRadius;
         // _innerCircle.w remains _innerCircleRadius
 
         _outterCircle.x = transform.position.x;
         _outterCircle.y = transform.position.y;
         _outterCircle.z = transform.position.z;
+        _outterCircle.w = _outerCircleRadius;
         // _outterCircle.w remains _outerCircleRadius
 
         var averageAmplitude = AudioSpectrumProcessor.Instance.GetAverageAmplitudeInRange(2, _rotateSpeed);
