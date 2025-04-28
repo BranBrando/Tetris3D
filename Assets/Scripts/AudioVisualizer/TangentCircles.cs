@@ -24,6 +24,10 @@ public class TangentCircles : CircleTangent
     public float _rotateSpeed;
     public bool _rotateBuffer;
 
+    [Header("Emission")]
+    public float emissionLerpSpeed = 5f; // Adjust this value to control the lerp speed
+    private Color[] _targetEmissionColor;
+
     void Start()
     {
         _innerCircle = new Vector4(transform.position.x, transform.position.y, transform.position.z, _innerCircleRadius);
@@ -32,6 +36,7 @@ public class TangentCircles : CircleTangent
         _tangentCircle = new Vector4[_circleAmount];
         _tangentObject = new GameObject[_circleAmount];
         _material = new Material[_circleAmount];
+        _targetEmissionColor = new Color[_circleAmount];
 
         for (int i = 0; i < _circleAmount; i++)
         {
@@ -71,14 +76,18 @@ public class TangentCircles : CircleTangent
             
             // var amplitude = AudioSpectrumProcessor.Instance.GetAmplitudeForBand(2, bandIndex, _emissionMultiplier);
             var amplitude64 = AudioSpectrumProcessor.Instance.GetAmplitudeForBand64(2, i, _emissionMultiplier);
+            Color calculatedEmissionColor;
             if (amplitude64 > _thresholdEmission)
             {
-                _material[i].SetColor("_EmissionColor", _gradient.Evaluate(1f / _circleAmount * i) * amplitude64);
+                calculatedEmissionColor = _gradient.Evaluate(1f / _circleAmount * i) * amplitude64;
             }
             else
             {
-                _material[i].SetColor("_EmissionColor", new Color(0, 0, 0));
+                calculatedEmissionColor = new Color(0, 0, 0);
             }
+            _targetEmissionColor[i] = calculatedEmissionColor;
+
+            _material[i].SetColor("_EmissionColor", Color.Lerp(_material[i].GetColor("_EmissionColor"), _targetEmissionColor[i], Time.deltaTime * emissionLerpSpeed));
         }
     }
 }
