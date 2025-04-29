@@ -57,6 +57,23 @@ public class AudioVisualizerManager : MonoBehaviour
         InitializeCurrentValues();
         ChangeTangentCirclesGradient(targetGradient);
         StartCoroutine(RandomlyUpdateTangentTargets()); // Renamed coroutine
+
+        // New logic: Randomly enable/disable visualizers
+        if (visualizers != null && visualizers.Length > 0)
+        {
+            foreach (var visualizer in visualizers)
+            {
+                if (visualizer != null)
+                {
+                    bool shouldBeActive = Random.value > 0.5f; // 50% chance
+                    visualizer.SetActive(shouldBeActive);
+                }
+            }
+        }
+        else
+        {
+             Debug.LogWarning("AudioVisualizerManager: No visualizers assigned to randomly enable/disable.");
+        }
     }
 
     void Update()
