@@ -593,21 +593,6 @@ MonoBehaviour:
   - {fileID: 196799385}
   - {fileID: 1973845125}
   - {fileID: 539923840}
-  minTimeBetweenUpdates: 5
-  maxTimeBetweenUpdates: 10
-  minEmissionMultiplier: 0.1
-  maxEmissionMultiplier: 2
-  minScaleStart: 0.5
-  maxScaleStart: 1
-  minScaleMin: 0.5
-  maxScaleMin: 1
-  minScaleMax: 1
-  maxScaleMax: 2
-  minInnerRadius: -10
-  maxInnerRadius: 5
-  minOuterRadius: 6
-  maxOuterRadius: 20
-  tangentCirclesLerpSpeed: 3
 --- !u!4 &99602613
 Transform:
   m_ObjectHideFlags: 0
@@ -1047,6 +1032,11 @@ PrefabInstance:
         type: 3}
       propertyPath: _thresholdEmission
       value: 0.822
+      objectReference: {fileID: 0}
+    - target: {fileID: 8478376537885474724, guid: 0148126e5943d6041a38f02b0b15e3cd,
+        type: 3}
+      propertyPath: maxTimeBetweenUpdates
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 8478376537885474724, guid: 0148126e5943d6041a38f02b0b15e3cd,
         type: 3}
@@ -5044,6 +5034,11 @@ PrefabInstance:
         type: 3}
       propertyPath: _outerCircleRadius
       value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 8478376537885474724, guid: 0148126e5943d6041a38f02b0b15e3cd,
+        type: 3}
+      propertyPath: maxTimeBetweenUpdates
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 8478376537885474724, guid: 0148126e5943d6041a38f02b0b15e3cd,
         type: 3}
