@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using UnityEngine.Audio; // Needed for AudioMixer
 
-[RequireComponent(typeof(AudioSource))] // Ensure AudioSource component is present
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance { get; private set; }
@@ -28,6 +27,8 @@ public class AudioManager : MonoBehaviour
     [Header("Sound Definitions")]
     public Sound[] sounds; // Array to hold sound definitions
 
+    private AudioClip[] loadedMusicClips;
+
     void Awake()
     {
         // Singleton pattern implementation
@@ -41,6 +42,13 @@ public class AudioManager : MonoBehaviour
 
             // Initialize audio sources for the starting scene
             UpdateAudioSourcesForScene(SceneManager.GetActiveScene(), LoadSceneMode.Single);
+
+            // Load background music clips from Resources
+            loadedMusicClips = Resources.LoadAll<AudioClip>("Audio/Sound tracks");
+            if (loadedMusicClips == null || loadedMusicClips.Length == 0)
+            {
+                Debug.LogError("AudioManager: Failed to load any background music clips from Resources/Audio/Sound tracks. Ensure the path is correct and clips exist.");
+            }
         }
         else if (Instance != this)
         {
@@ -55,46 +63,62 @@ public class AudioManager : MonoBehaviour
 
     void UpdateAudioSourcesForScene(Scene scene, LoadSceneMode mode)
     {
-        string currentSceneName = scene.name;
 
-        foreach (Sound s in sounds)
+        List<Sound> bgmSounds = new List<Sound>();
+
+        // Background Music Logic
+        if (loadedMusicClips != null && loadedMusicClips.Length > 0)
         {
-            if (s.name != null && s.name.IndexOf(currentSceneName, System.StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                // Sound belongs to this scene
-                if (s.source == null)
-                {
-                    s.source = gameObject.AddComponent<AudioSource>();
-                    s.source.clip = s.clip;
-                    s.source.volume = s.volume;
-                    s.source.pitch = s.pitch;
-                    s.source.loop = s.loop;
-                    s.source.playOnAwake = false;
 
-                    // Optional: Mixer group assignment
-                    // if (mainMixer != null && !string.IsNullOrEmpty(s.outputMixerGroup)) { ... }
+            foreach (Sound s in sounds)
+            {
+                if (s.isBackgroundMusic)
+                {
+                    bgmSounds.Add(s);
                 }
             }
-            else
+
+            // Stop any currently playing background music
+            foreach (Sound s in bgmSounds)
             {
-                // Sound does not belong to this scene
-                if (s.source != null)
+                if (s.source != null && s.source.isPlaying)
                 {
-                    Destroy(s.source);
-                    s.source = null;
+                    s.source.Stop();
                 }
+            }
+
+            if (bgmSounds.Count > 0)
+            {
+                AudioClip randomClip = loadedMusicClips[Random.Range(0, loadedMusicClips.Length)];
+
+                foreach (Sound s in bgmSounds)
+                {
+                    s.clip = randomClip;
+                    if (s.source == null)
+                    {
+                        s.source = gameObject.AddComponent<AudioSource>();
+                        s.source.volume = s.volume;
+                        s.source.pitch = s.pitch;
+                        s.source.loop = true;
+                        s.source.playOnAwake = false;
+                    }
+                    s.source.clip = randomClip;
+                    s.source.loop = true; // Ensure looping is enabled
+                }
+
+                // Play one of the background music tracks
+                bgmSounds[0].source.Play();
             }
         }
 
         // Initialize AudioSpectrumProcessor
-        AudioSource spectrumSource = GetAudioSourceForSound(currentSceneName);
-        if (spectrumSource != null)
+        if (bgmSounds.Count > 0 && bgmSounds[0].source != null)
         {
-            AudioSpectrumProcessor.Instance.Initialize(spectrumSource, spectrumSize, spectrumWindow, spectrumMinFrequency, spectrumMaxFrequency, spectrumThreshold);
+            AudioSpectrumProcessor.Instance.Initialize(bgmSounds[0].source, spectrumSize, spectrumWindow, spectrumMinFrequency, spectrumMaxFrequency, spectrumThreshold);
         }
         else
         {
-            Debug.LogWarning($"AudioManager: No AudioSource found with keyword '{currentSceneName}' for spectrum analysis.");
+            Debug.LogWarning($"AudioManager: No background music is playing, cannot initialize AudioSpectrumProcessor.");
         }
     }
 
@@ -274,4 +298,5 @@ public class Sound
     // Runtime-assigned source component
     [HideInInspector]
     public AudioSource source;
+    public bool isBackgroundMusic = false;
 }

@@ -29,8 +29,8 @@ public class MainMenuController : MonoBehaviour
     {
         if (AudioManager.Instance != null)
         {
-            string sceneName = SceneManager.GetActiveScene().name;
-            AudioManager.Instance.PlaySound(sceneName); // Assumes a sound named after the scene exists
+            string soundName = "BGM";
+            AudioManager.Instance.PlaySound(soundName); // Assumes a sound named after the scene exists
         }
         else
         {

@@ -1537,7 +1537,7 @@ PrefabInstance:
     - target: {fileID: 2468649505889307989, guid: 249356507db9c1e45a1eecc2449185b8,
         type: 3}
       propertyPath: sounds.Array.size
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2468649505889307989, guid: 249356507db9c1e45a1eecc2449185b8,
         type: 3}
@@ -1554,6 +1554,11 @@ PrefabInstance:
       propertyPath: sounds.Array.data[0].clip
       value: 
       objectReference: {fileID: 8300000, guid: 1a1c85b6fb0caf8418d94c34a9698b78, type: 3}
+    - target: {fileID: 2468649505889307989, guid: 249356507db9c1e45a1eecc2449185b8,
+        type: 3}
+      propertyPath: sounds.Array.data[0].name
+      value: BGM
+      objectReference: {fileID: 0}
     - target: {fileID: 2468649505889307989, guid: 249356507db9c1e45a1eecc2449185b8,
         type: 3}
       propertyPath: sounds.Array.data[1].clip
@@ -1583,6 +1588,31 @@ PrefabInstance:
         type: 3}
       propertyPath: sounds.Array.data[4].clip
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 2468649505889307989, guid: 249356507db9c1e45a1eecc2449185b8,
+        type: 3}
+      propertyPath: backgroundMusicClips.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2468649505889307989, guid: 249356507db9c1e45a1eecc2449185b8,
+        type: 3}
+      propertyPath: 'backgroundMusicClips.Array.data[0]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 04bae459384c5b445ac460bc70d8c5db, type: 3}
+    - target: {fileID: 2468649505889307989, guid: 249356507db9c1e45a1eecc2449185b8,
+        type: 3}
+      propertyPath: sounds.Array.data[0].isBackgroundMusic
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2468649505889307989, guid: 249356507db9c1e45a1eecc2449185b8,
+        type: 3}
+      propertyPath: sounds.Array.data[1].isBackgroundMusic
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7766612972568604748, guid: 249356507db9c1e45a1eecc2449185b8,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7842146985783324262, guid: 249356507db9c1e45a1eecc2449185b8,
         type: 3}
@@ -1639,7 +1669,8 @@ PrefabInstance:
       propertyPath: m_Name
       value: AudioManager
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 7766612972568604748, guid: 249356507db9c1e45a1eecc2449185b8, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
