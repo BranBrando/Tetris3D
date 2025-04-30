@@ -9,6 +9,8 @@ namespace TetrisGame
         private int score = 0;
         private int planesCleared = 0;
         private int level = 1;
+        private int bestScore = 0;
+        private const string BestScoreKey = "TetrisBestScore";
 
         // Bonus tracking
         private int consecutivePlanes = 0;
@@ -25,6 +27,24 @@ namespace TetrisGame
             {
                 Instance = this;
             }
+
+            bestScore = PlayerPrefs.GetInt(BestScoreKey, 0);
+        }
+
+        public void CheckAndSaveBestScore()
+        {
+            if (score > bestScore)
+            {
+                bestScore = score;
+                PlayerPrefs.SetInt(BestScoreKey, bestScore);
+                PlayerPrefs.Save(); // Ensure it's saved immediately
+                Debug.Log($"New Best Score: {bestScore}"); // Optional: Log confirmation
+            }
+        }
+
+        public int GetBestScore()
+        {
+            return bestScore;
         }
 
         public void AddScore(int planes)

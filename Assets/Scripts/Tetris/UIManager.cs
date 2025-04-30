@@ -10,7 +10,8 @@ namespace TetrisGame
         [SerializeField] private TMP_Text scoreText;
         [SerializeField] private TMP_Text levelText;
         [SerializeField] private TMP_Text planesText;
-        
+        [SerializeField] private TMP_Text bestScoreText;
+
         [Header("Game Info UI")]
         [SerializeField] private GameObject settingsPanel; // Renamed from controlsPanel
         [SerializeField] private GameObject gameOverPanel;
@@ -47,6 +48,11 @@ namespace TetrisGame
                 
             // Show controls for the first few seconds
             // ShowControlsTemporarily();
+
+            if (ScoreManager.Instance != null && bestScoreText != null)
+            {
+                bestScoreText.text = $"Best: {ScoreManager.Instance.GetBestScore()}";
+            }
         }
 
         private void Update()
@@ -55,27 +61,27 @@ namespace TetrisGame
             {
                 if (scoreText != null)
                     scoreText.text = $"Score: {ScoreManager.Instance.GetScore()}";
-                    
+
                 if (levelText != null)
                     levelText.text = $"Level: {ScoreManager.Instance.GetLevel()}";
-                    
+
                 if (planesText != null)
                     planesText.text = $"Planes: {ScoreManager.Instance.GetLines()}";
             }
-            
+
             // Check for game over
             if (!isGameOver && GameManager.Instance != null && GameManager.Instance.IsGameOver())
             {
                 ShowGameOver();
             }
-            
+
             // Toggle settings panel (using escape key for now)
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 ToggleSettingsPanel(); // Renamed method call
             }
         }
-        
+
         // Renamed method
         private void ShowSettingsTemporarily() 
         {
@@ -106,13 +112,22 @@ namespace TetrisGame
         
         private void ShowGameOver()
         {
+            if (ScoreManager.Instance != null)
+            {
+                ScoreManager.Instance.CheckAndSaveBestScore(); // Check and save score first
+                if (bestScoreText != null) // Update the display after potentially saving
+                {
+                    bestScoreText.text = $"Best: {ScoreManager.Instance.GetBestScore()}";
+                }
+            }
+
             isGameOver = true;
             if (gameOverPanel != null)
             {
                 gameOverPanel.SetActive(true);
             }
         }
-        
+
         private void RestartGame()
         {
             // Reset game state

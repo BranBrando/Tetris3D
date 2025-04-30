@@ -274,12 +274,13 @@ namespace TetrisGame
                     if (gridSystem.IsPositionOccupied(new Vector3Int(x, gridHeight - 1, z)))
                     {
                         Debug.Log("Game over");
+                        ScoreManager.Instance.CheckAndSaveBestScore(); // Check and save best score
                         return true; // Game over if top row is occupied
                     }
                 }
             }
             return false; // If no blocks found in the top row, game is not over
-        } // Closing brace for IsGameOver
+        }
 
         private void SpawnNewPiece()
         {
