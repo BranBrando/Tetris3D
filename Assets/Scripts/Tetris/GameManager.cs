@@ -21,6 +21,7 @@ namespace TetrisGame
         private float currentGridRotationY = 0f; // Current visual rotation state of the grid
         private float targetGridRotationY = 0f; // Target rotation state
         private bool isRotating = false; // Flag to prevent concurrent rotations
+        private bool spawnPieceAfterRotation = false; // Flag to spawn a piece after rotation
         [SerializeField] private float rotationDuration = 0.5f; // Duration for smooth rotation
 
         // Public property to check if the grid is currently rotating
@@ -213,9 +214,16 @@ namespace TetrisGame
             }
 
             CheckForCompletedPlanes();
-            if(!IsGameOver())
+            if (!IsGameOver())
             {
-                SpawnNewPiece();
+                if (IsRotating)
+                {
+                    spawnPieceAfterRotation = true;
+                }
+                else
+                {
+                    SpawnNewPiece();
+                }
             }
         }
 
@@ -355,10 +363,17 @@ namespace TetrisGame
 
             currentGridRotationY = targetAngleY; // Update the current state
             isRotating = false;
+
+            if (spawnPieceAfterRotation)
+            {
+                SpawnNewPiece();
+                spawnPieceAfterRotation = false;
+            }
+
             Debug.Log($"Smooth rotation finished at {currentGridRotationY}");
 
             // Optional: Camera adjustment if needed
-            // CameraController cameraController = FindObjectOfType<CameraController>();
+            //CameraController cameraController = FindObjectOfType<CameraController>();
             // if (cameraController != null) cameraController.AdjustForGridRotation(currentGridRotationY);
         }
     }
