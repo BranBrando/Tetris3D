@@ -20,7 +20,7 @@ public class AudioVisualizerManager : MonoBehaviour
             {
                 if (visualizer != null)
                 {
-                    bool shouldBeActive = Random.value > 0.2f; // 80% chance
+                    bool shouldBeActive = Random.value > 0.5f; // 50% chance
                     visualizer.SetActive(shouldBeActive);
                 }
             }

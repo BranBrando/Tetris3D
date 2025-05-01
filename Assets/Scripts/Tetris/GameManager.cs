@@ -21,7 +21,6 @@ namespace TetrisGame
         private float currentGridRotationY = 0f; // Current visual rotation state of the grid
         private float targetGridRotationY = 0f; // Target rotation state
         private bool isRotating = false; // Flag to prevent concurrent rotations
-        private bool spawnPieceAfterRotation = false; // Flag to spawn a piece after rotation
         [SerializeField] private float rotationDuration = 0.5f; // Duration for smooth rotation
 
         // Public property to check if the grid is currently rotating
@@ -64,7 +63,7 @@ namespace TetrisGame
             }
             else
             {
-                 Debug.Log("AudioManager singleton instance found by GameManager.");
+                Debug.Log("AudioManager singleton instance found by GameManager.");
             }
 
             // Find necessary components in the scene
@@ -86,7 +85,7 @@ namespace TetrisGame
             gridSystem.Initialize(gridWidth, gridHeight, gridDepth);
             gridSystem.transform.position = Vector3.zero;
             // gridSystem.transform.position = new Vector3(-5, gridHeight, -5);
-            
+
             pieceSpawner = new GameObject("PieceSpawner").AddComponent<PieceSpawner>();
             pieceSpawner.transform.parent = gridSystem.transform;
             pieceSpawner.transform.position = new Vector3(
@@ -94,7 +93,7 @@ namespace TetrisGame
                 gridHeight + 0.5f,
                 (gridDepth % 2 == 0) ? (gridDepth / 2f - 0.5f) : (gridDepth / 2f)
             );
-            
+
             // VFXGround.transform.position = new Vector3(
             //     (gridWidth % 2 == 0) ? (gridWidth / 2f - 0.5f) : (gridWidth / 2f),
             //     0,
@@ -103,7 +102,7 @@ namespace TetrisGame
 
             // Create and set up ScoreManager
             new GameObject("ScoreManager").AddComponent<ScoreManager>();
-            
+
             // Note: CameraController and GridVisualizer should be added manually in the Unity Editor
             // or after all scripts are compiled.
 
@@ -200,7 +199,7 @@ namespace TetrisGame
             currentFallTime = Mathf.Max(0.1f, baseFallTime - (ScoreManager.Instance.GetLevel() * 0.1f));
         }
 
-        public float GetCurrentFallTime() 
+        public float GetCurrentFallTime()
         {
             return currentFallTime;
         }
@@ -216,21 +215,14 @@ namespace TetrisGame
             CheckForCompletedPlanes();
             if (!IsGameOver())
             {
-                if (IsRotating)
-                {
-                    spawnPieceAfterRotation = true;
-                }
-                else
-                {
-                    SpawnNewPiece();
-                }
+                SpawnNewPiece();
             }
         }
 
         private void CheckForCompletedPlanes()
         {
             int planesCleared = 0;
-            
+
             // Check XZ planes (horizontal layers)
             for (int y = 0; y < gridHeight; y++)
             {
@@ -242,7 +234,7 @@ namespace TetrisGame
                     planesCleared++;
                 }
             }
-            
+
             // Check XY planes (depth layers)
             for (int z = 0; z < gridDepth; z++)
             {
@@ -254,7 +246,7 @@ namespace TetrisGame
                     planesCleared++;
                 }
             }
-            
+
             // Check YZ planes (width layers)
             for (int x = 0; x < gridWidth; x++)
             {
@@ -358,17 +350,11 @@ namespace TetrisGame
 
             // Ensure final rotation is exact for the visualizer and spawner
             Quaternion finalRotation = Quaternion.Euler(0, targetAngleY, 0);
-             if (gridVisualizer != null) gridVisualizer.transform.rotation = finalRotation; // Rotate main visualizer transform
-             if (pieceSpawner != null) pieceSpawner.transform.rotation = finalRotation;
+            if (gridVisualizer != null) gridVisualizer.transform.rotation = finalRotation; // Rotate main visualizer transform
+            if (pieceSpawner != null) pieceSpawner.transform.rotation = finalRotation;
 
             currentGridRotationY = targetAngleY; // Update the current state
             isRotating = false;
-
-            if (spawnPieceAfterRotation)
-            {
-                SpawnNewPiece();
-                spawnPieceAfterRotation = false;
-            }
 
             Debug.Log($"Smooth rotation finished at {currentGridRotationY}");
 

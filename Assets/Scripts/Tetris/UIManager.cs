@@ -51,7 +51,7 @@ namespace TetrisGame
 
             if (ScoreManager.Instance != null && bestScoreText != null)
             {
-                bestScoreText.text = $"Best: {ScoreManager.Instance.GetBestScore()}";
+                bestScoreText.text = $"Best Score: {ScoreManager.Instance.GetBestScore()}";
             }
         }
 

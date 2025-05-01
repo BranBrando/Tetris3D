@@ -24,6 +24,7 @@ namespace TetrisGame
         private GridVisualizer gridVisualizer; // Reference for shadow updates
         private PieceSpawner pieceSpawner; // Added reference for parenting ghost
         private List<Renderer> ghostBlockRenderers = new List<Renderer>(); // Added cache for ghost renderers
+        private bool pendingMoveDown = false;
 
         private void Start()
         {
@@ -136,8 +137,24 @@ namespace TetrisGame
             
             if (fallTimer >= currentFallTime)
             {
+                if (GameManager.Instance != null && GameManager.Instance.IsRotating)
+                {
+                    // If rotating, flag that a move down is pending but don't execute yet
+                    pendingMoveDown = true;
+                }
+                else
+                {
+                    // If not rotating, execute MoveDown immediately
+                    MoveDown();
+                }
+                fallTimer = 0f; // Reset timer regardless
+            }
+
+            // Check if a move down was pending and rotation has now stopped
+            if (pendingMoveDown && GameManager.Instance != null && !GameManager.Instance.IsRotating)
+            {
                 MoveDown();
-                fallTimer = 0f;
+                pendingMoveDown = false; // Reset the flag
             }
             
             // Update ghost piece position
@@ -162,7 +179,7 @@ namespace TetrisGame
                 {
                     GameManager.Instance.PlacePiece(this);
                 }
-                
+
                 // Hide ghost piece when tetromino is placed
                 ShowGhostPiece(false);
             }
