@@ -55,7 +55,7 @@ public class TangentCircles : CircleTangent
     public int _circleAmount;
 
     [Header("Audio Visuals")]
-    public Material _materialBase;
+    private Material _materialBase;
     private Material[] _material;
     public Gradient _gradient;
     private float _rotateTangentObjects;
@@ -147,6 +147,7 @@ public class TangentCircles : CircleTangent
         _material = new Material[_circleAmount];
         _targetEmissionColor = new Color[_circleAmount];
 
+        _materialBase = Resources.Load<Material>("Materials/Circle");
         for (int i = 0; i < _circleAmount; i++)
         {
             GameObject tangentInstance = (GameObject)Instantiate(_circlePrefab);

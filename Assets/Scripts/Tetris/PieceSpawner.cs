@@ -9,11 +9,12 @@ namespace TetrisGame
 
         private GameObject fallingPiece;
 
+        private Material defaultMaterial;
         private void Start()
         {
             // Get spawn position from GameObject transform
             spawnPosition = transform.position;
-
+            defaultMaterial = Resources.Load<Material>("Materials/DefaultMaterial");
             // Create 3D tetromino prefabs if none exist
             if (tetrominoPrefabs == null || tetrominoPrefabs.Length == 0)
             {
@@ -116,11 +117,14 @@ namespace TetrisGame
                 block.transform.localPosition = position;
                 Color blockColor = color;
                 blockColor.a = 1.0f; // Ensure fully opaque
+
+                // Assign a default material to the block
+                block.GetComponent<MeshRenderer>().material = defaultMaterial;
                 block.GetComponent<MeshRenderer>().material.color = blockColor;
 
                 // Add LineRenderer
                 LineRenderer lineRenderer = block.AddComponent<LineRenderer>();
-                lineRenderer.material = new Material(Shader.Find("Custom/AlwaysVisibleLine"));
+                lineRenderer.material = new Material(Shader.Find("Custom/LineShader"));
                 lineRenderer.material.color = Color.black;
                 lineRenderer.startWidth = 0.03f;
                 lineRenderer.endWidth = 0.03f;
@@ -135,22 +139,22 @@ namespace TetrisGame
                 corners[2] = new Vector3(halfSize, -halfSize, halfSize);
                 corners[3] = new Vector3(-halfSize, -halfSize, halfSize);
                 corners[4] = new Vector3(-halfSize, -halfSize, -halfSize);
-                
+
                 corners[5] = new Vector3(-halfSize, halfSize, -halfSize);
                 corners[6] = new Vector3(halfSize, halfSize, -halfSize);
                 corners[7] = new Vector3(halfSize, halfSize, halfSize);
                 corners[8] = new Vector3(-halfSize, halfSize, halfSize);
                 corners[9] = new Vector3(-halfSize, halfSize, -halfSize);
-                
+
                 corners[10] = new Vector3(halfSize, halfSize, -halfSize);
                 corners[11] = new Vector3(halfSize, -halfSize, -halfSize);
-                
+
                 corners[12] = new Vector3(halfSize, -halfSize, halfSize);
                 corners[13] = new Vector3(halfSize, halfSize, halfSize);
-                
+
                 corners[14] = new Vector3(-halfSize, halfSize, halfSize);
                 corners[15] = new Vector3(-halfSize, -halfSize, halfSize);
-                
+
 
                 lineRenderer.positionCount = corners.Length;
                 lineRenderer.SetPositions(corners);
