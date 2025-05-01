@@ -40,15 +40,16 @@ public class AudioManager : MonoBehaviour
             // Subscribe to sceneLoaded event
             SceneManager.sceneLoaded += UpdateAudioSourcesForScene;
 
-            // Initialize audio sources for the starting scene
-            UpdateAudioSourcesForScene(SceneManager.GetActiveScene(), LoadSceneMode.Single);
-
             // Load background music clips from Resources
             loadedMusicClips = Resources.LoadAll<AudioClip>("Audio/Sound tracks");
             if (loadedMusicClips == null || loadedMusicClips.Length == 0)
             {
                 Debug.LogError("AudioManager: Failed to load any background music clips from Resources/Audio/Sound tracks. Ensure the path is correct and clips exist.");
             }
+            
+            // Initialize audio sources for the starting scene
+            UpdateAudioSourcesForScene(SceneManager.GetActiveScene(), LoadSceneMode.Single);
+
         }
         else if (Instance != this)
         {
@@ -93,10 +94,17 @@ public class AudioManager : MonoBehaviour
 
                 foreach (Sound s in bgmSounds)
                 {
+                    Debug.Log($"AudioManager: Found background music sound: {s.name}, source is currently: {(s.source == null ? "null" : "not null")}");
+
                     s.clip = randomClip;
                     if (s.source == null)
                     {
+                        Debug.Log($"AudioManager: Adding AudioSource component to sound: {s.name}");
                         s.source = gameObject.AddComponent<AudioSource>();
+                        if (s.source == null)
+                        {
+                            Debug.LogError($"AudioManager: Failed to add AudioSource component to sound: {s.name}!");
+                        }
                         s.source.volume = s.volume;
                         s.source.pitch = s.pitch;
                         s.source.loop = true;
@@ -107,7 +115,15 @@ public class AudioManager : MonoBehaviour
                 }
 
                 // Play one of the background music tracks
-                bgmSounds[0].source.Play();
+                Debug.Log($"AudioManager: About to play background music, source is: {(bgmSounds[0].source == null ? "null" : "not null")}");
+                if (bgmSounds[0].source != null)
+                {
+                    bgmSounds[0].source.Play();
+                }
+                else
+                {
+                    Debug.LogError("AudioManager: bgmSounds[0].source is null, cannot play background music!");
+                }
             }
         }
 
@@ -118,7 +134,8 @@ public class AudioManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning($"AudioManager: No background music is playing, cannot initialize AudioSpectrumProcessor.");
+            string reason = (bgmSounds.Count == 0) ? "no background music sounds found" : "bgmSounds[0].source is null";
+            Debug.LogWarning($"AudioManager: Cannot initialize AudioSpectrumProcessor because {reason}.");
         }
     }
 
