@@ -11,7 +11,7 @@ public class AudioVisualizerManager : MonoBehaviour
     [Tooltip("Assign the visualizer visualizers (e.g., CubeCircleSpawner, TangentCircles, CubeVisualizer) here.")]
     public GameObject[] visualizers;
 
-    void Start()
+    void Awake()
     {
         // New logic: Randomly enable/disable visualizers
         if (visualizers != null && visualizers.Length > 0)
@@ -20,7 +20,7 @@ public class AudioVisualizerManager : MonoBehaviour
             {
                 if (visualizer != null)
                 {
-                    bool shouldBeActive = Random.value > 0.5f; // 50% chance
+                    bool shouldBeActive = Random.value > 0.5f; // 70% chance
                     visualizer.SetActive(shouldBeActive);
                 }
             }

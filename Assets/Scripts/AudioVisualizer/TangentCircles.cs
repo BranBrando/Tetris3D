@@ -63,7 +63,7 @@ public class TangentCircles : CircleTangent
 
     [Header("Scale")]
     public bool _scaleYOnAudio;
-    [Range(0,1)]
+    [Range(0, 1)]
     public float _scaleThreshold;
     public Vector2 _scaleMinMax;
 
@@ -184,6 +184,7 @@ public class TangentCircles : CircleTangent
         _outterCircle.z = transform.position.z;
         _outterCircle.w = currentOuterRadius;
 
+        AudioSpectrumProcessor.Instance.UpdateSpectrum();
         var averageAmplitude = AudioSpectrumProcessor.Instance.GetAverageAmplitudeInRange(2, _rotateSpeed);
         _rotateTangentObjects += _rotateSpeed * Time.deltaTime * averageAmplitude;
 
@@ -197,13 +198,13 @@ public class TangentCircles : CircleTangent
 
             // var amplitude = AudioSpectrumProcessor.Instance.GetAmplitudeForBand(2, bandIndex, _emissionMultiplier);
             var amplitude64 = AudioSpectrumProcessor.Instance.GetAmplitudeForBand64(2, i, _emissionMultiplier);
-            
+
             if (_scaleYOnAudio)
             {
                 if (amplitude64 > _scaleThreshold)
                 {
                     _tangentObject[i].transform.localScale = new Vector3(_tangentCircle[i].w, currentScaleStart + Mathf.Lerp(_scaleMinMax.x, _scaleMinMax.y, amplitude64), _tangentCircle[i].w);
-                    
+
                 }
                 else
                 {
@@ -214,7 +215,7 @@ public class TangentCircles : CircleTangent
             {
                 _tangentObject[i].transform.localScale = new Vector3(_tangentCircle[i].w, _tangentCircle[i].w, _tangentCircle[i].w) * 2;
             }
-            
+
             Color calculatedEmissionColor;
             if (amplitude64 > _thresholdEmission)
             {
