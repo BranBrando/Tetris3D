@@ -215,9 +215,9 @@ public class AudioSpectrumProcessor
     public float GetAverageAmplitudeInRange(int channel, float scale)
     {
         if (!IsInitialized) return 0f;
-
-        float[] targetSpectrumData = (channel == 0) ? spectrumDataLeft : spectrumDataRight;
-        if (channel == 0){
+        float[] targetSpectrumData;
+        if (channel == 0)
+        {
             targetSpectrumData = spectrumDataLeft;
         }
         else if (channel == 1)

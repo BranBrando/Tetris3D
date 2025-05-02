@@ -6,6 +6,7 @@ public class TangentCircles : CircleTangent
 {
     [Header("Setup")]
     public GameObject _circlePrefab;
+    public int channel = 2; // Audio channel to visualize
 
     [Header("Randomization Settings")]
     public float minTimeBetweenUpdates = 5f;
@@ -155,7 +156,6 @@ public class TangentCircles : CircleTangent
             _tangentObject[i].transform.parent = this.transform;
             _material[i] = new Material(_materialBase);
             _material[i].EnableKeyword("_EMISSION");
-            _material[i].SetColor("_BaseColor", new Color(0, 0, 0));
             _tangentObject[i].GetComponent<MeshRenderer>().material = _material[i];
         }
 
@@ -186,9 +186,9 @@ public class TangentCircles : CircleTangent
         _outterCircle.w = currentOuterRadius;
 
         AudioSpectrumProcessor.Instance.UpdateSpectrum();
-        var averageAmplitude = AudioSpectrumProcessor.Instance.GetAverageAmplitudeInRange(2, _rotateSpeed);
+        var averageAmplitude = AudioSpectrumProcessor.Instance.GetAverageAmplitudeInRange(channel, _rotateSpeed);
         _rotateTangentObjects += _rotateSpeed * Time.deltaTime * averageAmplitude;
-
+        Debug.Log("rotate averageAmplitude: " + averageAmplitude);
         for (int i = 0; i < _circleAmount; i++)
         {
             // int bandIndex = i * 8 / _circleAmount;
@@ -198,8 +198,8 @@ public class TangentCircles : CircleTangent
             _tangentObject[i].transform.localScale = new Vector3(_tangentCircle[i].w, _tangentCircle[i].w, _tangentCircle[i].w) * 2;
 
             // var amplitude = AudioSpectrumProcessor.Instance.GetAmplitudeForBand(2, bandIndex, _emissionMultiplier);
-            var amplitude64 = AudioSpectrumProcessor.Instance.GetAmplitudeForBand64(2, i, _emissionMultiplier);
-
+            var amplitude64 = AudioSpectrumProcessor.Instance.GetAmplitudeForBand64(channel, i, _emissionMultiplier);
+            Debug.Log("amp64: " + amplitude64);
             if (_scaleYOnAudio)
             {
                 if (amplitude64 > _scaleThreshold)
