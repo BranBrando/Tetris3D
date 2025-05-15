@@ -16,38 +16,46 @@ namespace TetrisGame
         [SerializeField] private GameObject settingsPanel; // Renamed from controlsPanel
         [SerializeField] private GameObject gameOverPanel;
         [SerializeField] private Button restartButton;
-        
+
         [Header("Optional 3D Helpers")]
         [SerializeField] private GameObject gridVisualization;
         [SerializeField] private Toggle gridToggle;
         [SerializeField] private Slider transparencySlider;
-        
+
         private bool isGameOver = false;
-        
+
+        // Cached reference to the GridVisualizer
+        private GridVisualizer gridVisualizer;
+
         private void Start()
         {
             // Setup initial UI
             if (gameOverPanel != null)
                 gameOverPanel.SetActive(false);
-                
+
             if (settingsPanel != null) // Renamed from controlsPanel
                 settingsPanel.SetActive(false); // Renamed from controlsPanel
-                
+
             if (restartButton != null)
                 restartButton.onClick.AddListener(RestartGame);
-                
+
             if (gridToggle != null)
                 gridToggle.onValueChanged.AddListener(ToggleGridVisualization);
-                
+
             if (transparencySlider != null)
                 transparencySlider.onValueChanged.AddListener(AdjustGridTransparency);
-                
+
             // Initialize grid visualization
             if (gridVisualization != null)
+            {
                 gridVisualization.SetActive(true);
-                
-            // Show controls for the first few seconds
-            // ShowControlsTemporarily();
+                // Cache the GridVisualizer component
+                gridVisualizer = gridVisualization.GetComponent<GridVisualizer>();
+                if (gridVisualizer == null)
+                {
+                    Debug.LogError("UIManager: GridVisualization GameObject does not have a GridVisualizer component!");
+                }
+            }
 
             if (ScoreManager.Instance != null && bestScoreText != null)
             {
@@ -83,7 +91,7 @@ namespace TetrisGame
         }
 
         // Renamed method
-        private void ShowSettingsTemporarily() 
+        private void ShowSettingsTemporarily()
         {
             if (settingsPanel != null) // Renamed variable
             {
@@ -91,25 +99,25 @@ namespace TetrisGame
                 Invoke("HideSettings", 5f); // Renamed method call
             }
         }
-        
+
         // Renamed method
-        private void HideSettings() 
+        private void HideSettings()
         {
             if (settingsPanel != null) // Renamed variable
             {
                 settingsPanel.SetActive(false); // Renamed variable
             }
         }
-        
+
         // Renamed method
-        private void ToggleSettingsPanel() 
+        private void ToggleSettingsPanel()
         {
             if (settingsPanel != null) // Renamed variable
             {
                 settingsPanel.SetActive(!settingsPanel.activeSelf); // Renamed variable
             }
         }
-        
+
         private void ShowGameOver()
         {
             if (ScoreManager.Instance != null)
@@ -132,18 +140,18 @@ namespace TetrisGame
         {
             // Reset game state
             isGameOver = false;
-            
+
             // Hide game over panel
             if (gameOverPanel != null)
             {
                 gameOverPanel.SetActive(false);
             }
-            
+
             // Reload the scene
             UnityEngine.SceneManagement.SceneManager.LoadScene(
                 UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
         }
-        
+
         private void ToggleGridVisualization(bool isVisible)
         {
             if (gridVisualization != null)
@@ -151,46 +159,17 @@ namespace TetrisGame
                 gridVisualization.SetActive(isVisible);
             }
         }
-        
+
         private void AdjustGridTransparency(float value)
         {
-            if (gridVisualization != null)
+            // Call the SetLineTransparency method on the GridVisualizer
+            if (gridVisualizer != null)
             {
-                // Get all renderers in the grid visualization
-                Renderer[] renderers = gridVisualization.GetComponentsInChildren<Renderer>();
-                
-                // Update material transparency
-                foreach (Renderer renderer in renderers)
-                {
-                    Material mat = renderer.material;
-                    Color color = mat.color;
-                    color.a = value;
-                    mat.color = color;
-                    
-                    // Make sure we're using the right rendering mode for transparency
-                    if (value < 1.0f)
-                    {
-                        mat.SetFloat("_Mode", 3); // Transparent mode
-                        mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                        mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                        mat.SetInt("_ZWrite", 0);
-                        mat.DisableKeyword("_ALPHATEST_ON");
-                        mat.EnableKeyword("_ALPHABLEND_ON");
-                        mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-                        mat.renderQueue = 3000;
-                    }
-                    else
-                    {
-                        mat.SetFloat("_Mode", 0); // Opaque mode
-                        mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
-                        mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
-                        mat.SetInt("_ZWrite", 1);
-                        mat.DisableKeyword("_ALPHATEST_ON");
-                        mat.DisableKeyword("_ALPHABLEND_ON");
-                        mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-                        mat.renderQueue = -1;
-                    }
-                }
+                gridVisualizer.SetLineTransparency(value);
+            }
+            else
+            {
+                Debug.LogWarning("UIManager: GridVisualizer reference is null. Cannot adjust grid transparency.");
             }
         }
     }

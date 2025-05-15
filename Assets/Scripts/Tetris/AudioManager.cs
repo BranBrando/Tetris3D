@@ -12,6 +12,7 @@ public class AudioManager : MonoBehaviour
 
     [Header("Mixer Settings")]
     public AudioMixer mainMixer; // Assign your main AudioMixer asset here
+    public AudioMixerGroup musicMixerGroup; // Assign your AudioMixerGroup for music here
     public string masterVolumeParameter = "MasterVolume"; // Name of the exposed volume parameter in the mixer
 
     [Header("Spectrum Analysis Settings")]
@@ -46,7 +47,7 @@ public class AudioManager : MonoBehaviour
             {
                 Debug.LogError("AudioManager: Failed to load any background music clips from Resources/Audio/Sound tracks. Ensure the path is correct and clips exist.");
             }
-            
+
             // Initialize audio sources for the starting scene
             UpdateAudioSourcesForScene(SceneManager.GetActiveScene(), LoadSceneMode.Single);
 
@@ -104,12 +105,13 @@ public class AudioManager : MonoBehaviour
                         if (s.source == null)
                         {
                             Debug.LogError($"AudioManager: Failed to add AudioSource component to sound: {s.name}!");
+                            s.source.volume = s.volume;
+                            s.source.pitch = s.pitch;
+                            s.source.loop = true;
+                            s.source.playOnAwake = false;
                         }
-                        s.source.volume = s.volume;
-                        s.source.pitch = s.pitch;
-                        s.source.loop = true;
-                        s.source.playOnAwake = false;
                     }
+                    s.source.outputAudioMixerGroup = musicMixerGroup;
                     s.source.clip = randomClip;
                     s.source.loop = true; // Ensure looping is enabled
                 }
@@ -195,7 +197,7 @@ public class AudioManager : MonoBehaviour
             Debug.LogWarning("Sound: " + name + " not found!");
             return;
         }
-         if (s.source != null)
+        if (s.source != null)
         {
             s.source.Stop();
         }
@@ -245,7 +247,7 @@ public class AudioManager : MonoBehaviour
         }
         if (string.IsNullOrEmpty(masterVolumeParameter))
         {
-             Debug.LogError("Master Volume Parameter name is not set in AudioManager!", this);
+            Debug.LogError("Master Volume Parameter name is not set in AudioManager!", this);
             return;
         }
 
@@ -253,7 +255,7 @@ public class AudioManager : MonoBehaviour
         // Clamp linearVolume to avoid Log10(0) or negative values
         float dBVolume = Mathf.Log10(Mathf.Max(linearVolume, 0.0001f)) * 20f;
         Debug.Log($"Setting master volume to {dBVolume} dB (linear: {linearVolume})");
-        
+
         bool result = mainMixer.SetFloat(masterVolumeParameter, dBVolume);
 
         if (!result)
@@ -275,8 +277,8 @@ public class AudioManager : MonoBehaviour
         }
         if (string.IsNullOrEmpty(masterVolumeParameter))
         {
-             Debug.LogError("Master Volume Parameter name is not set in AudioManager!", this);
-             return -1f; // Indicate error
+            Debug.LogError("Master Volume Parameter name is not set in AudioManager!", this);
+            return -1f; // Indicate error
         }
 
         float dBVolume;

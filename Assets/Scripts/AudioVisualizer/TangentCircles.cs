@@ -57,7 +57,8 @@ public class TangentCircles : CircleTangent
 
     [Header("Audio Visuals")]
     private Material _materialBase;
-    private Material[] _material;
+    private MaterialPropertyBlock _propertyBlock;
+    private Renderer[] _tangentRenderers;
     public Gradient _gradient;
     private float _rotateTangentObjects;
     public float _rotateSpeed;
@@ -73,7 +74,6 @@ public class TangentCircles : CircleTangent
     [Range(0, 1)]
     public float _thresholdEmission;
     public float emissionLerpSpeed = 5f; // Adjust this value to control the lerp speed
-    private Color[] _targetEmissionColor;
 
     private Gradient CreateColorfulRandomGradient()
     {
@@ -145,18 +145,19 @@ public class TangentCircles : CircleTangent
 
         _tangentCircle = new Vector4[_circleAmount];
         _tangentObject = new GameObject[_circleAmount];
-        _material = new Material[_circleAmount];
-        _targetEmissionColor = new Color[_circleAmount];
 
         _materialBase = Resources.Load<Material>("Materials/Circle");
+        _materialBase.EnableKeyword("_EMISSION");
+        _propertyBlock = new MaterialPropertyBlock();
+        _tangentRenderers = new Renderer[_circleAmount];
         for (int i = 0; i < _circleAmount; i++)
         {
             GameObject tangentInstance = (GameObject)Instantiate(_circlePrefab);
+            tangentInstance.layer = LayerMask.NameToLayer("SpecialEffects");
             _tangentObject[i] = tangentInstance;
             _tangentObject[i].transform.parent = this.transform;
-            _material[i] = new Material(_materialBase);
-            _material[i].EnableKeyword("_EMISSION");
-            _tangentObject[i].GetComponent<MeshRenderer>().material = _material[i];
+            _tangentRenderers[i] = tangentInstance.GetComponent<MeshRenderer>();
+            _tangentRenderers[i].material = _materialBase;            
         }
 
         GenerateInitialRandomTargets();
@@ -188,18 +189,15 @@ public class TangentCircles : CircleTangent
         AudioSpectrumProcessor.Instance.UpdateSpectrum();
         var averageAmplitude = AudioSpectrumProcessor.Instance.GetAverageAmplitudeInRange(channel, _rotateSpeed);
         _rotateTangentObjects += _rotateSpeed * Time.deltaTime * averageAmplitude;
-        Debug.Log("rotate averageAmplitude: " + averageAmplitude);
         for (int i = 0; i < _circleAmount; i++)
         {
-            // int bandIndex = i * 8 / _circleAmount;
+            Renderer currentRenderer = _tangentRenderers[i];
             _tangentCircle[i] = FindTangentCircle(_outterCircle, _innerCircle, 360f / _circleAmount * i + _rotateTangentObjects);
             Vector3 relativePosition = new Vector3(_tangentCircle[i].x, _tangentCircle[i].y, _tangentCircle[i].z);
             _tangentObject[i].transform.position = transform.position + relativePosition;
             _tangentObject[i].transform.localScale = new Vector3(_tangentCircle[i].w, _tangentCircle[i].w, _tangentCircle[i].w) * 2;
 
-            // var amplitude = AudioSpectrumProcessor.Instance.GetAmplitudeForBand(2, bandIndex, _emissionMultiplier);
             var amplitude64 = AudioSpectrumProcessor.Instance.GetAmplitudeForBand64(channel, i, _emissionMultiplier);
-            Debug.Log("amp64: " + amplitude64);
             if (_scaleYOnAudio)
             {
                 if (amplitude64 > _scaleThreshold)
@@ -217,6 +215,8 @@ public class TangentCircles : CircleTangent
                 _tangentObject[i].transform.localScale = new Vector3(_tangentCircle[i].w, _tangentCircle[i].w, _tangentCircle[i].w) * 2;
             }
 
+            currentRenderer.GetPropertyBlock(_propertyBlock);
+            Color previousEmissionColor = _propertyBlock.GetVector("_EmissionColor");
             Color calculatedEmissionColor;
             if (amplitude64 > _thresholdEmission)
             {
@@ -226,9 +226,9 @@ public class TangentCircles : CircleTangent
             {
                 calculatedEmissionColor = new Color(0, 0, 0);
             }
-            _targetEmissionColor[i] = calculatedEmissionColor;
-
-            _material[i].SetColor("_EmissionColor", Color.Lerp(_material[i].GetColor("_EmissionColor"), _targetEmissionColor[i], Time.deltaTime * emissionLerpSpeed));
+            Color newEmissionColor = Color.Lerp(previousEmissionColor, calculatedEmissionColor, Time.deltaTime * emissionLerpSpeed);
+            _propertyBlock.SetVector("_EmissionColor", newEmissionColor);
+            currentRenderer.SetPropertyBlock(_propertyBlock);
         }
     }
 }

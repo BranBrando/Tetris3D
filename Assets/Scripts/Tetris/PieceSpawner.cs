@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic; // Required for Dictionary
 
 namespace TetrisGame
 {
@@ -7,14 +8,45 @@ namespace TetrisGame
         [SerializeField] private GameObject[] tetrominoPrefabs;
         private Vector3 spawnPosition;
 
-        private GameObject fallingPiece;
+        // Removed: private GameObject fallingPiece; // Not used in this script
 
-        private Material defaultMaterial;
+        private Material defaultBlockMaterial; // Base material for blocks
+        private Material lineOutlineMaterial; // Shared material for line renderers
+
+        // Dictionary to store shared materials for each color
+        private Dictionary<Color, Material> sharedBlockMaterials = new Dictionary<Color, Material>();
+
         private void Start()
         {
             // Get spawn position from GameObject transform
             spawnPosition = transform.position;
-            defaultMaterial = Resources.Load<Material>("Materials/DefaultMaterial");
+
+            // Load the base material for blocks
+            defaultBlockMaterial = Resources.Load<Material>("Materials/DefaultMaterial");
+            if (defaultBlockMaterial == null)
+            {
+                Debug.LogError("PieceSpawner: Failed to load 'Materials/DefaultMaterial'. Dynamic prefab creation may fail.");
+                // Fallback to a basic material if the default is missing
+                defaultBlockMaterial = new Material(Shader.Find("Standard"));
+            }
+
+            // Create the shared material for line outlines
+            Shader lineShader = Shader.Find("Custom/LineShader");
+            if (lineShader == null)
+            {
+                Debug.LogWarning("PieceSpawner: Custom/LineShader not found. Using default material for line outlines.");
+                lineShader = Shader.Find("Standard");
+            }
+            if (lineShader != null)
+            {
+                lineOutlineMaterial = new Material(lineShader);
+                lineOutlineMaterial.color = Color.black;
+            }
+            else
+            {
+                Debug.LogError("Failed to load default shader for line outline material");
+            }
+
             // Create 3D tetromino prefabs if none exist
             if (tetrominoPrefabs == null || tetrominoPrefabs.Length == 0)
             {
@@ -26,6 +58,21 @@ namespace TetrisGame
 
         private void CreateDefaultTetrominoPrefabs()
         {
+            // Define the colors used by the default tetrominos
+            Color cyan = Color.cyan;
+            Color yellow = Color.yellow;
+            Color magenta = Color.magenta;
+            Color orange = new Color(1.0f, 0.5f, 0.0f);
+            Color green = Color.green;
+
+            // Create shared material instances for each color
+            CreateSharedBlockMaterial(cyan);
+            CreateSharedBlockMaterial(yellow);
+            CreateSharedBlockMaterial(magenta);
+            CreateSharedBlockMaterial(orange);
+            CreateSharedBlockMaterial(green);
+
+
             tetrominoPrefabs = new GameObject[5]; // Standard 5 tetromino shapes
 
             // I-piece (3-block straight)
@@ -35,7 +82,7 @@ namespace TetrisGame
                     new Vector3(1, 0, 0),
                     new Vector3(2, 0, 0)
                 },
-                Color.cyan,
+                cyan, // Use the defined color
                 "I_Tetromino"
             );
 
@@ -47,7 +94,7 @@ namespace TetrisGame
                     new Vector3(0, 0, 1),
                     new Vector3(1, 0, 1)
                 },
-                Color.yellow,
+                yellow, // Use the defined color
                 "O_Tetromino"
             );
 
@@ -59,7 +106,7 @@ namespace TetrisGame
                     new Vector3(2, 0, 1), // Right arm
                     new Vector3(1, 0, 0)  // Front arm
                 },
-                Color.magenta,
+                magenta, // Use the defined color
                 "T_Tetromino"
             );
 
@@ -71,7 +118,7 @@ namespace TetrisGame
                     new Vector3(0, 0, 1),
                     new Vector3(0, 1, 0)
                 },
-                new Color(1.0f, 0.5f, 0.0f), // Orange
+                orange, // Use the defined color
                 "L_Tetromino"
             );
 
@@ -83,23 +130,58 @@ namespace TetrisGame
                     new Vector3(1, 0, 1),
                     new Vector3(1, 1, 1)
                 },
-                Color.green,
+                green, // Use the defined color
                 "S_Tetromino"
             );
 
             for (int i = 0; i < tetrominoPrefabs.Length; i++)
             {
-                tetrominoPrefabs[i].SetActive(false);
+                if (tetrominoPrefabs[i] != null) // Add null check
+                {
+                    tetrominoPrefabs[i].SetActive(false);
+                }
             }
             // 3D-specific shapes could be added here
         }
+
+        // Helper to create and store shared material instances
+        private void CreateSharedBlockMaterial(Color color)
+        {
+            if (defaultBlockMaterial == null) return; // Cannot create if base material is missing
+
+            // Create a new material instance based on the default material
+            Material sharedMat = new Material(defaultBlockMaterial);
+            sharedMat.color = color; // Set the specific color
+
+            // Store it in the dictionary
+            if (!sharedBlockMaterials.ContainsKey(color))
+            {
+                sharedBlockMaterials.Add(color, sharedMat);
+            }
+            else
+            {
+                // If a material for this color already exists, destroy the new one
+                Destroy(sharedMat);
+            }
+        }
+
 
         private Bounds CalculatePieceBounds(GameObject piece)
         {
             Bounds bounds = new Bounds(piece.transform.position, Vector3.zero);
             foreach (Transform child in piece.transform)
             {
-                bounds.Encapsulate(child.position);
+                // Ensure the child has a renderer before encapsulating
+                Renderer childRenderer = child.GetComponent<Renderer>();
+                if (childRenderer != null)
+                {
+                     bounds.Encapsulate(childRenderer.bounds);
+                }
+                else
+                {
+                    // If no renderer, just encapsulate the position
+                    bounds.Encapsulate(child.position);
+                }
             }
             return bounds;
         }
@@ -109,27 +191,60 @@ namespace TetrisGame
             GameObject tetromino = new GameObject(name);
             tetromino.AddComponent<Tetromino>();
 
+            // Get the shared material for this color
+            Material blockMaterialToAssign = defaultBlockMaterial; // Fallback
+            if (sharedBlockMaterials.TryGetValue(color, out Material sharedMat))
+            {
+                blockMaterialToAssign = sharedMat;
+            }
+            else
+            {
+                 Debug.LogWarning($"PieceSpawner: Shared material for color {color} not found. Using default material for {name}.");
+            }
+
+
             // Create blocks
             foreach (Vector3 position in blockPositions)
             {
                 GameObject block = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 block.transform.parent = tetromino.transform;
                 block.transform.localPosition = position;
-                Color blockColor = color;
-                blockColor.a = 1.0f; // Ensure fully opaque
+                // Color blockColor = color; // Color is now handled by the shared material
+                // blockColor.a = 1.0f; // Ensure fully opaque
 
-                // Assign a default material to the block
-                block.GetComponent<MeshRenderer>().material = defaultMaterial;
-                block.GetComponent<MeshRenderer>().material.color = blockColor;
+                // Assign the shared material to the block
+                MeshRenderer meshRenderer = block.GetComponent<MeshRenderer>();
+                if (meshRenderer != null)
+                {
+                    meshRenderer.material = blockMaterialToAssign; // Assign the shared material
+                    // meshRenderer.material.color = blockColor; // No need to set color here, it's on the shared material
+                }
+                else
+                {
+                    Debug.LogError($"PieceSpawner: No MeshRenderer found on block of {name}!");
+                }
+
 
                 // Add LineRenderer
                 LineRenderer lineRenderer = block.AddComponent<LineRenderer>();
-                lineRenderer.material = new Material(Shader.Find("Custom/LineShader"));
-                lineRenderer.material.color = Color.black;
+                if (lineOutlineMaterial != null)
+                {
+                    lineRenderer.material = lineOutlineMaterial; // Assign the shared line material
+                    // Line properties are set on the LineRenderer component below
+                }
+                else
+                {
+                    // Fallback if line material creation failed
+                    lineRenderer.material = new Material(Shader.Find("Standard"));
+                    lineRenderer.material.color = Color.black;
+                }
+
+                // Set LineRenderer properties (moved from material setup)
                 lineRenderer.startWidth = 0.03f;
                 lineRenderer.endWidth = 0.03f;
                 lineRenderer.useWorldSpace = false;
                 lineRenderer.loop = true;
+
 
                 // Define the corner points of the cube
                 Vector3[] corners = new Vector3[16];
@@ -159,8 +274,8 @@ namespace TetrisGame
                 lineRenderer.positionCount = corners.Length;
                 lineRenderer.SetPositions(corners);
 
-                // Enable the MeshRenderer
-                block.GetComponent<MeshRenderer>().enabled = true;
+                // Enable the MeshRenderer (it's enabled by default for primitives, but good to be explicit)
+                // block.GetComponent<MeshRenderer>().enabled = true; // This is redundant
             }
 
             return tetromino;
@@ -168,22 +283,44 @@ namespace TetrisGame
 
         public void SpawnRandomPiece()
         {
-            if (tetrominoPrefabs.Length == 0) return;
+            if (tetrominoPrefabs == null || tetrominoPrefabs.Length == 0) // Added null check for array
+            {
+                 Debug.LogError("PieceSpawner: No tetromino prefabs assigned or created.");
+                 return;
+            }
+
 
             int randomIndex = Random.Range(0, tetrominoPrefabs.Length);
-            GameObject newPiece = Instantiate(tetrominoPrefabs[randomIndex], spawnPosition, Quaternion.identity);
+            GameObject prefabToSpawn = tetrominoPrefabs[randomIndex];
+
+            if (prefabToSpawn == null) // Add null check for the selected prefab
+            {
+                 Debug.LogError($"PieceSpawner: Tetromino prefab at index {randomIndex} is null.");
+                 return;
+            }
+
+            GameObject newPiece = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
             newPiece.SetActive(true);
 
             // Set the parent to this spawner's transform
             newPiece.transform.SetParent(transform);
 
             // Get grid dimensions from GameManager
-            if (GameManager.Instance == null) return;
+            if (GameManager.Instance == null)
+            {
+                 Debug.LogError("PieceSpawner: GameManager instance not found.");
+                 return;
+            }
             Vector3Int gridSize = GameManager.Instance.GetGridSize();
 
             // Get tetromino component
             Tetromino tetromino = newPiece.GetComponent<Tetromino>();
-            if (tetromino == null) return;
+            if (tetromino == null)
+            {
+                 Debug.LogError("PieceSpawner: Spawned piece does not have a Tetromino component.");
+                 return;
+            }
+
 
             // Calculate piece bounds
             Bounds pieceBounds = CalculatePieceBounds(newPiece);
@@ -191,18 +328,16 @@ namespace TetrisGame
             // Adjust position to keep piece within grid
             Vector3 adjustedPosition = spawnPosition;
 
-            Debug.Log("=============");
-            Debug.Log("Adjusted Position: " + adjustedPosition);
-            Debug.Log("Min pieceBounds: " + pieceBounds.min);
-            Debug.Log("Max pieceBounds: " + pieceBounds.max);
+            // Removed Debug.Log calls
+
             // Check X bounds
             if (pieceBounds.min.x < 0)
             {
                 adjustedPosition.x -= pieceBounds.min.x;
             }
-            else if (pieceBounds.max.x >= gridSize.x)
+            else if (pieceBounds.max.x > gridSize.x) // Changed >= to > for correct boundary check
             {
-                adjustedPosition.x -= pieceBounds.max.x - gridSize.x + 0.5f;
+                adjustedPosition.x -= pieceBounds.max.x - gridSize.x;
             }
 
             // Check Z bounds
@@ -210,9 +345,9 @@ namespace TetrisGame
             {
                 adjustedPosition.z -= pieceBounds.min.z;
             }
-            else if (pieceBounds.max.z >= gridSize.z)
+            else if (pieceBounds.max.z > gridSize.z) // Changed >= to > for correct boundary check
             {
-                adjustedPosition.z -= pieceBounds.max.z - gridSize.z + 1;
+                adjustedPosition.z -= pieceBounds.max.z - gridSize.z;
             }
 
             // Apply adjusted position
@@ -235,7 +370,7 @@ namespace TetrisGame
                 newPiece.transform.Rotate(rotation);
 
                 // Verify position is valid after rotation
-                if (tetromino != null && !tetromino.IsValidPosition())
+                if (!tetromino.IsValidPosition()) // Simplified check
                 {
                     // If invalid position after rotation, reset rotation
                     newPiece.transform.rotation = Quaternion.identity;
